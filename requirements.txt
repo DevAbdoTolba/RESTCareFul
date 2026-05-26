@@ -1,0 +1,14 @@
+# Runtime
+Django>=5.0,<5.3
+djangorestframework>=3.15,<4.0
+djangorestframework-simplejwt>=5.3,<6.0
+django-cors-headers>=4.3,<5.0
+django-environ>=0.11,<1.0
+psycopg[binary]>=3.1,<4.0          ; python_version < "3.14"   # Postgres driver — install but driver only used when DATABASE_URL=postgres://...
+
+# Dev / test (kept in the same file so CI installs everything in one step;
+# split into requirements-dev.txt later if it grows)
+pytest>=8.0,<9.0
+pytest-django>=4.8,<5.0
+factory_boy>=3.3,<4.0
+ruff>=0.6,<1.0

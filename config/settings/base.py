@@ -38,9 +38,9 @@ DJANGO_APPS = [
 ]
 
 THIRD_PARTY_APPS = [
-    # Added in later commits as features land:
-    # 'rest_framework',
-    # 'corsheaders',
+    'rest_framework',
+    'corsheaders',
+    # SimpleJWT doesn't need to be in INSTALLED_APPS — its views are imported directly.
 ]
 
 LOCAL_APPS = [
@@ -54,8 +54,8 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # corsheaders.middleware.CorsMiddleware is inserted in the API commit
-    # — must sit ABOVE CommonMiddleware to short-circuit preflight requests.
+    # CORS must sit ABOVE CommonMiddleware to short-circuit preflight requests.
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -117,3 +117,30 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- DRF + JWT --------------------------------------------------------------
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
+
+from datetime import timedelta  # noqa: E402  (kept local to its config block)
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+# --- CORS -------------------------------------------------------------------
+# Locked down by default — only origins listed in CORS_ALLOWED_ORIGINS may call us.
+CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
+CORS_ALLOW_CREDENTIALS = True

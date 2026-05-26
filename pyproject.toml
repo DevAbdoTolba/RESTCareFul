@@ -1,0 +1,24 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["venv", "migrations", "*/migrations/*"]
+
+[tool.ruff.lint]
+# Sensible defaults — turn on more rules as the codebase matures.
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort (import ordering)
+    "B",   # bugbear (common pitfalls)
+    "UP",  # pyupgrade
+    "DJ",  # django-specific
+]
+ignore = ["E501"]  # line length handled by formatter, not lint
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "-ra --strict-markers"

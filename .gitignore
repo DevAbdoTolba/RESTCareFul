@@ -172,6 +172,17 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# Django
+/staticfiles/
+/media/
+*.log
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
 # Pyre type checker
 .pyre/
 

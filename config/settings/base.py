@@ -44,8 +44,17 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    # Order is dependency-aware: things with FKs come AFTER their targets so
+    # makemigrations resolves cleanly on a fresh database. Ownership lives in
+    # .github/CODEOWNERS — change it there, not here.
+    'core',
     'accounts',
-    # More domain apps land in later commits; CODEOWNERS pins the owner per app.
+    'specialties',
+    'doctors',
+    'appointments',
+    'payments',
+    'ratings',
+    'dashboard',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -32,7 +32,8 @@ class SpecialtySuggestion(models.Model):
     proposed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         related_name='specialty_suggestions',
     )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)

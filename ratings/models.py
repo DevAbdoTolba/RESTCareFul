@@ -8,6 +8,7 @@ class Rating(models.Model):
     One rating per completed appointment — the appointment IS the natural PK,
     enforced via `OneToOneField(primary_key=True)`.
     """
+
     appointment = models.OneToOneField(
         'appointments.Appointment',
         on_delete=models.CASCADE,

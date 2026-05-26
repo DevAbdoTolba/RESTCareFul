@@ -4,7 +4,7 @@ from django.db import models
 
 class Appointment(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'pending', 'Pending'        # patient requested, doctor not yet confirmed
+        PENDING = 'pending', 'Pending'  # patient requested, doctor not yet confirmed
         CONFIRMED = 'confirmed', 'Confirmed'  # doctor accepted
         CANCELLED = 'cancelled', 'Cancelled'
         COMPLETED = 'completed', 'Completed'  # visit happened

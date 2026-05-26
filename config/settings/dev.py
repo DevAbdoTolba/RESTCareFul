@@ -1,6 +1,7 @@
 """
 Local-development settings — used by manage.py / runserver by default.
 """
+
 from .base import *  # noqa: F401, F403
 
 DEBUG = True

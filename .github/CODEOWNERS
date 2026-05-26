@@ -1,0 +1,39 @@
+# Code Owners — auto-requests the right reviewer on every PR.
+#
+# How to read this file:
+#   <path-pattern> <space-separated owners>
+# The LAST matching line wins. Keep this file aligned with the vertical-slice
+# ownership table in CONTRIBUTING.md.
+#
+# Owners are GitHub handles. If you change ownership in real life, change it
+# here too — that's how the rest of the team finds out.
+
+# --- Fallback ---------------------------------------------------------------
+# Anything not explicitly owned defaults to Tolba (init author) — that way the
+# team still gets a review request on weird cross-cutting changes.
+*                                @DevAbdoTolba
+
+# --- Domain apps (vertical slices) -----------------------------------------
+/accounts/                       @DevAbdoTolba
+/core/                           @DevAbdoTolba
+/ratings/                        @DevAbdoTolba
+
+/doctors/                        @AhmeedFatehy
+
+/appointments/                   @AhmedSamirKhalaf
+/specialties/                    @AhmedSamirKhalaf
+
+# Hany's apps — replace @DevAbdoTolba with Hany's GitHub handle once known.
+/payments/                       @DevAbdoTolba
+/dashboard/                      @DevAbdoTolba
+
+# --- Cross-cutting infrastructure ------------------------------------------
+# These files affect everyone — any change needs Tolba's sign-off to keep the
+# team's shared contract stable.
+/config/                         @DevAbdoTolba
+/.github/                        @DevAbdoTolba
+/requirements.txt                @DevAbdoTolba
+/pyproject.toml                  @DevAbdoTolba
+/manage.py                       @DevAbdoTolba
+/CONTRIBUTING.md                 @DevAbdoTolba
+/docs/                           @DevAbdoTolba

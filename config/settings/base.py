@@ -44,7 +44,8 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    # Domain apps land in later commits; CODEOWNERS pins the owner per app.
+    'accounts',
+    # More domain apps land in later commits; CODEOWNERS pins the owner per app.
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -93,8 +94,7 @@ DATABASES = {
 }
 
 # --- Auth -------------------------------------------------------------------
-# Custom user model is wired in the accounts-app commit.
-# AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'accounts.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

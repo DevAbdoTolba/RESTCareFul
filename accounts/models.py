@@ -11,6 +11,7 @@ Two things make this non-default:
 Defining this BEFORE any other migrations run is mandatory — swapping
 AUTH_USER_MODEL after the fact is famously painful in Django.
 """
+
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 

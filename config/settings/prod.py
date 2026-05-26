@@ -3,6 +3,7 @@ Production settings. Loaded explicitly via DJANGO_SETTINGS_MODULE=config.setting
 
 Anything secret / environment-specific MUST come from env vars — never hardcoded.
 """
+
 from .base import *  # noqa: F401, F403
 
 DEBUG = False

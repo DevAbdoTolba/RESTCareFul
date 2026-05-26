@@ -1,4 +1,5 @@
 """Serializers for the public auth endpoints."""
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
@@ -13,14 +14,22 @@ class RegisterSerializer(serializers.ModelSerializer):
     Patients auto-approve; doctors land as `pending` and wait for the admin's
     review (and a DoctorProfile, owned by the `doctors` app).
     """
+
     password = serializers.CharField(write_only=True, min_length=6)
 
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'password', 'role',
-            'first_name', 'last_name',
-            'phone_number', 'gender', 'date_of_birth', 'description',
+            'id',
+            'email',
+            'password',
+            'role',
+            'first_name',
+            'last_name',
+            'phone_number',
+            'gender',
+            'date_of_birth',
+            'description',
         )
         read_only_fields = ('id',)
 
@@ -46,9 +55,17 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'role', 'status',
-            'first_name', 'last_name',
-            'phone_number', 'gender', 'date_of_birth', 'description',
-            'created_at', 'updated_at',
+            'id',
+            'email',
+            'role',
+            'status',
+            'first_name',
+            'last_name',
+            'phone_number',
+            'gender',
+            'date_of_birth',
+            'description',
+            'created_at',
+            'updated_at',
         )
         read_only_fields = fields  # /me is read-only; profile updates have their own endpoint

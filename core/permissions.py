@@ -3,6 +3,7 @@ Shared DRF permissions — owned by `core` and imported by every domain app's
 views. Centralising these means "what is an approved doctor?" has exactly one
 answer in the codebase.
 """
+
 from rest_framework import permissions
 
 from accounts.models import User
@@ -26,7 +27,8 @@ class IsApprovedDoctor(permissions.BasePermission):
     def has_permission(self, request, view):
         u = request.user
         return bool(
-            u and u.is_authenticated
+            u
+            and u.is_authenticated
             and u.role == User.Role.DOCTOR
             and u.status == User.Status.APPROVED
         )

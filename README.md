@@ -95,7 +95,7 @@ The React SPA that consumes this API lives at
 
 ## Team
 
-- [@Ahmed Fathi](https://github.com/AhmeedFatehy) — `doctors`
-- [@Abdo Tolba](https://github.com/DevAbdoTolba) — `accounts`, `core`, `ratings`
-- [@Ahmed Samir](https://github.com/AhmedSamirKhalaf) — `appointments`, `specialties`
-- [@Mohamed Hany](https://github.com/muhameedhanyyy) — `payments`, `dashboard`
+- [@Ahmed Fathi](https://github.com/AhmeedFatehy)
+- [@Abdo Tolba](https://github.com/DevAbdoTolba)
+- [@Ahmed Samir](https://github.com/AhmedSamirKhalaf)
+- [@Mohamed Hany](https://github.com/muhameedhanyyy)

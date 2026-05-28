@@ -87,6 +87,12 @@ as an ISA subtype via `OneToOneField`, JWT, settings split, …) are documented
 in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md). Read it once — it explains
 the *why* behind anything that looks unusual.
 
+## Data model (ERD)
+
+The schema these models implement is in [`docs/ERD.md`](./docs/ERD.md) (Mermaid,
+renders on GitHub) with the editable source in [`docs/ERD.drawio`](./docs/ERD.drawio)
+(open in [diagrams.net](https://app.diagrams.net), "ERD — post-discussion" page).
+
 ## Frontend
 
 The React SPA that consumes this API lives at

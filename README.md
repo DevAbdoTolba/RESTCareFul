@@ -98,4 +98,4 @@ The React SPA that consumes this API lives at
 - [@Ahmed Fathi](https://github.com/AhmeedFatehy) — `doctors`
 - [@Abdo Tolba](https://github.com/DevAbdoTolba) — `accounts`, `core`, `ratings`
 - [@Ahmed Samir](https://github.com/AhmedSamirKhalaf) — `appointments`, `specialties`
-- Hany — `payments`, `dashboard`
+- [@Mohamed Hany](https://github.com/muhameedhanyyy) — `payments`, `dashboard`

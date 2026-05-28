@@ -89,9 +89,12 @@ the *why* behind anything that looks unusual.
 
 ## Data model (ERD)
 
-The schema these models implement is in [`docs/ERD.md`](./docs/ERD.md) (Mermaid,
-renders on GitHub) with the editable source in [`docs/ERD.drawio`](./docs/ERD.drawio)
-(open in [diagrams.net](https://app.diagrams.net), "ERD — post-discussion" page).
+![RESTCareFul ERD](./docs/ERD.png)
+
+Full write-up in [`docs/ERD.md`](./docs/ERD.md) (Mermaid + Chen-notation image).
+Editable source: [`docs/ERD.drawio`](./docs/ERD.drawio) — open in
+[diagrams.net](https://app.diagrams.net), "ERD — post-discussion" page. Vector
+export: [`docs/ERD.svg`](./docs/ERD.svg).
 
 ## Frontend
 

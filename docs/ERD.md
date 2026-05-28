@@ -12,12 +12,14 @@ the new **Doctor** subtype (ISA of `User` when `U_role = 'doctor'`) holding all
 doctor-only fields, plus the new Rating, Payment, SpecialtySuggestion and
 DocUpdateRequest entities.
 
-> **Image note:** [`ERD-original.png`](./ERD-original.png) is a PNG export of
-> the *original* (pre-post-discussion) diagram page — it does **not** show the
-> Doctor subtype / Payment / Rating entities. A fresh export of the
-> "ERD — post-discussion" page still needs to be dropped in as `ERD.png`
-> (export from diagrams.net: File → Export as → PNG). The Mermaid diagram
-> below and `ERD.drawio` are the up-to-date sources of truth.
+## Diagram (Chen notation, exported from drawio)
+
+![RESTCareFul ERD](./ERD.png)
+
+*Vector version: [`ERD.svg`](./ERD.svg) · editable source: [`ERD.drawio`](./ERD.drawio)
+("ERD — post-discussion" page).*
+
+## Same model in Mermaid (renders inline on GitHub)
 
 ```mermaid
 erDiagram

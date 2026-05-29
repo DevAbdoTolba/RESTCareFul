@@ -6,8 +6,19 @@ config/urls.py for routing changes inside this slice. That's how we keep PRs
 inside this app from ever conflicting with another teammate's PR.
 """
 
-from django.urls import path  # noqa: F401  (kept handy for the first endpoint)
+from django.urls import path
+
+from .views import (
+    ApprovedDoctorDetailView,
+    ApprovedDoctorListView,
+    MyDoctorProfileView,
+)
 
 app_name = 'doctors'
 
-urlpatterns = []
+urlpatterns = [
+    path('', ApprovedDoctorListView.as_view(), name='list'),
+    # 'me/' before '<int:pk>/' so the literal isn't swallowed as an id.
+    path('me/', MyDoctorProfileView.as_view(), name='me'),
+    path('<int:pk>/', ApprovedDoctorDetailView.as_view(), name='detail'),
+]

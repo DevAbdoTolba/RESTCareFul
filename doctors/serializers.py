@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import DoctorProfile
+from .models import DoctorAvailability, DoctorProfile
 
 
 class DoctorPublicSerializer(serializers.ModelSerializer):
@@ -60,3 +60,17 @@ class DoctorProfileWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorProfile
         fields = ('specialty', 'hourly_rate', 'resume_url', 'license_url')
+
+
+class DoctorAvailabilitySerializer(serializers.ModelSerializer):
+    """an open window the doctor declares. is_available flips when booked."""
+
+    class Meta:
+        model = DoctorAvailability
+        fields = ('id', 'date', 'start_time', 'end_time', 'is_available')
+        read_only_fields = ('is_available',)
+
+    def validate(self, attrs):
+        if attrs['end_time'] <= attrs['start_time']:
+            raise serializers.ValidationError('end_time must be after start_time.')
+        return attrs

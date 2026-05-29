@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -5,8 +6,9 @@ from rest_framework.views import APIView
 from accounts.models import User
 from core.permissions import IsDoctor
 
-from .models import DoctorProfile
+from .models import DoctorAvailability, DoctorProfile
 from .serializers import (
+    DoctorAvailabilitySerializer,
     DoctorProfileSerializer,
     DoctorProfileWriteSerializer,
     DoctorPublicSerializer,
@@ -73,3 +75,43 @@ class MyDoctorProfileView(APIView):
         ser.save()
         prof.refresh_from_db()
         return Response(DoctorProfileSerializer(prof).data)
+
+
+class MyAvailabilityView(generics.ListCreateAPIView):
+    """GET/POST /api/v1/doctors/me/availability/ - the doctor's own windows."""
+
+    serializer_class = DoctorAvailabilitySerializer
+    permission_classes = [IsDoctor]
+
+    def get_queryset(self):
+        return DoctorAvailability.objects.filter(doctor_id=self.request.user.pk)
+
+    def perform_create(self, serializer):
+        prof, _ = DoctorProfile.objects.get_or_create(user=self.request.user)
+        serializer.save(doctor=prof)
+
+
+class MyAvailabilityDeleteView(generics.DestroyAPIView):
+    """DELETE /api/v1/doctors/me/availability/<id>/ - drop a window."""
+
+    permission_classes = [IsDoctor]
+
+    def get_queryset(self):
+        return DoctorAvailability.objects.filter(doctor_id=self.request.user.pk)
+
+
+class DoctorOpenSlotsView(generics.ListAPIView):
+    """GET /api/v1/doctors/<id>/availability/ - bookable future slots only.
+
+    Past or already-taken windows are never returned, so a patient can't try to
+    book an outdated slot.
+    """
+
+    serializer_class = DoctorAvailabilitySerializer
+
+    def get_queryset(self):
+        return DoctorAvailability.objects.filter(
+            doctor_id=self.kwargs['pk'],
+            is_available=True,
+            date__gte=timezone.now().date(),
+        )

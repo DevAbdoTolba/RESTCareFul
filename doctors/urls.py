@@ -11,6 +11,9 @@ from django.urls import path
 from .views import (
     ApprovedDoctorDetailView,
     ApprovedDoctorListView,
+    DoctorOpenSlotsView,
+    MyAvailabilityDeleteView,
+    MyAvailabilityView,
     MyDoctorProfileView,
 )
 
@@ -18,7 +21,14 @@ app_name = 'doctors'
 
 urlpatterns = [
     path('', ApprovedDoctorListView.as_view(), name='list'),
-    # 'me/' before '<int:pk>/' so the literal isn't swallowed as an id.
+    # 'me/...' before '<int:pk>/' so the literal isn't swallowed as an id.
     path('me/', MyDoctorProfileView.as_view(), name='me'),
+    path('me/availability/', MyAvailabilityView.as_view(), name='my-availability'),
+    path(
+        'me/availability/<int:pk>/',
+        MyAvailabilityDeleteView.as_view(),
+        name='my-availability-delete',
+    ),
     path('<int:pk>/', ApprovedDoctorDetailView.as_view(), name='detail'),
+    path('<int:pk>/availability/', DoctorOpenSlotsView.as_view(), name='open-slots'),
 ]

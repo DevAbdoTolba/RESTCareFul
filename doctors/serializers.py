@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import DoctorAvailability, DoctorProfile
+from .models import DocUpdateRequest, DoctorAvailability, DoctorProfile
 
 
 class DoctorPublicSerializer(serializers.ModelSerializer):
@@ -74,3 +74,19 @@ class DoctorAvailabilitySerializer(serializers.ModelSerializer):
         if attrs['end_time'] <= attrs['start_time']:
             raise serializers.ValidationError('end_time must be after start_time.')
         return attrs
+
+
+class DocUpdateRequestSerializer(serializers.ModelSerializer):
+    """doctor files a resume/license change, admin approves it onto the profile."""
+
+    class Meta:
+        model = DocUpdateRequest
+        fields = (
+            'id',
+            'doctor_name',
+            'resume_url',
+            'license_url',
+            'status',
+            'created_at',
+        )
+        read_only_fields = ('doctor_name', 'status', 'created_at')

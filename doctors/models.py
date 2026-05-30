@@ -65,3 +65,34 @@ class DoctorAvailability(models.Model):
 
     def __str__(self) -> str:
         return f'{self.doctor.user.email} {self.date} {self.start_time}-{self.end_time}'
+
+
+class DocUpdateRequest(models.Model):
+    """an approved doctor can't silently swap resume/license.
+
+    they file one of these, the admin approves it and the new url(s) get patched
+    back onto the DoctorProfile. doctor_name is denormalised so the admin list
+    doesn't need a join.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+
+    doctor = models.ForeignKey(
+        DoctorProfile, on_delete=models.CASCADE, related_name='update_requests'
+    )
+    doctor_name = models.CharField(max_length=150, blank=True)
+    resume_url = models.TextField(blank=True)
+    license_url = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f'update req {self.doctor.user.email} ({self.status})'

@@ -9,12 +9,16 @@ inside this app from ever conflicting with another teammate's PR.
 from django.urls import path
 
 from .views import (
+    AdminUpdateRequestListView,
+    ApproveUpdateRequestView,
     ApprovedDoctorDetailView,
     ApprovedDoctorListView,
     DoctorOpenSlotsView,
     MyAvailabilityDeleteView,
     MyAvailabilityView,
     MyDoctorProfileView,
+    MyUpdateRequestView,
+    RejectUpdateRequestView,
 )
 
 app_name = 'doctors'
@@ -28,6 +32,18 @@ urlpatterns = [
         'me/availability/<int:pk>/',
         MyAvailabilityDeleteView.as_view(),
         name='my-availability-delete',
+    ),
+    path('me/update-requests/', MyUpdateRequestView.as_view(), name='my-update-requests'),
+    path('update-requests/', AdminUpdateRequestListView.as_view(), name='admin-update-requests'),
+    path(
+        'update-requests/<int:pk>/approve/',
+        ApproveUpdateRequestView.as_view(),
+        name='update-request-approve',
+    ),
+    path(
+        'update-requests/<int:pk>/reject/',
+        RejectUpdateRequestView.as_view(),
+        name='update-request-reject',
     ),
     path('<int:pk>/', ApprovedDoctorDetailView.as_view(), name='detail'),
     path('<int:pk>/availability/', DoctorOpenSlotsView.as_view(), name='open-slots'),

@@ -1,13 +1,15 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import User
-from core.permissions import IsDoctor
+from core.permissions import IsAdmin, IsDoctor
 
-from .models import DoctorAvailability, DoctorProfile
+from .models import DocUpdateRequest, DoctorAvailability, DoctorProfile
 from .serializers import (
+    DocUpdateRequestSerializer,
     DoctorAvailabilitySerializer,
     DoctorProfileSerializer,
     DoctorProfileWriteSerializer,
@@ -115,3 +117,59 @@ class DoctorOpenSlotsView(generics.ListAPIView):
             is_available=True,
             date__gte=timezone.now().date(),
         )
+
+
+class MyUpdateRequestView(generics.ListCreateAPIView):
+    """GET/POST /api/v1/doctors/me/update-requests/ - file resume/license changes."""
+
+    serializer_class = DocUpdateRequestSerializer
+    permission_classes = [IsDoctor]
+
+    def get_queryset(self):
+        return DocUpdateRequest.objects.filter(doctor_id=self.request.user.pk)
+
+    def perform_create(self, serializer):
+        prof, _ = DoctorProfile.objects.get_or_create(user=self.request.user)
+        u = self.request.user
+        name = f'{u.first_name} {u.last_name}'.strip() or u.email
+        serializer.save(doctor=prof, doctor_name=name)
+
+
+class AdminUpdateRequestListView(generics.ListAPIView):
+    """GET /api/v1/doctors/update-requests/ - admin queue (?status=pending)."""
+
+    serializer_class = DocUpdateRequestSerializer
+    permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        qs = DocUpdateRequest.objects.select_related('doctor__user')
+        st = self.request.query_params.get('status')
+        return qs.filter(status=st) if st else qs
+
+
+class ApproveUpdateRequestView(APIView):
+    """POST .../update-requests/<id>/approve/ - patch the new docs onto the profile."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        req = get_object_or_404(DocUpdateRequest, pk=pk)
+        prof = req.doctor
+        if req.resume_url:
+            prof.resume_url = req.resume_url
+        if req.license_url:
+            prof.license_url = req.license_url
+        prof.save(update_fields=['resume_url', 'license_url', 'updated_at'])
+        req.status = DocUpdateRequest.Status.APPROVED
+        req.save(update_fields=['status'])
+        return Response(DocUpdateRequestSerializer(req).data)
+
+
+class RejectUpdateRequestView(APIView):
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        req = get_object_or_404(DocUpdateRequest, pk=pk)
+        req.status = DocUpdateRequest.Status.REJECTED
+        req.save(update_fields=['status'])
+        return Response(DocUpdateRequestSerializer(req).data)

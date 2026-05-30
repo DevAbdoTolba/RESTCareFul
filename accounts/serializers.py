@@ -69,3 +69,34 @@ class UserSerializer(serializers.ModelSerializer):
             'updated_at',
         )
         read_only_fields = fields  # /me is read-only; profile updates have their own endpoint
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """PATCH /auth/me/profile/ — the fields a user may edit about themselves.
+
+    Deliberately excludes role/status/email so a patient can't promote
+    themselves or jump the doctor approval queue from the profile form.
+    """
+
+    class Meta:
+        model = User
+        fields = (
+            'first_name',
+            'last_name',
+            'phone_number',
+            'gender',
+            'date_of_birth',
+            'description',
+        )
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """POST /auth/me/password/ — verify the old password before swapping it."""
+
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=6)
+
+    def validate_old_password(self, value):
+        if not self.context['request'].user.check_password(value):
+            raise serializers.ValidationError('Current password is incorrect.')
+        return value

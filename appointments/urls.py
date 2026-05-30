@@ -4,8 +4,12 @@ URL routes for the appointments slice. Mounted at /api/v1/appointments/.
 Owner: see .github/CODEOWNERS. Add endpoints here only.
 """
 
-from django.urls import path  # noqa: F401
+from django.urls import path
+
+from .views import BookAppointmentView
 
 app_name = 'appointments'
 
-urlpatterns = []
+urlpatterns = [
+    path('book/', BookAppointmentView.as_view(), name='book'),
+]

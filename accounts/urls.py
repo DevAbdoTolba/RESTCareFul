@@ -8,7 +8,15 @@ model — since ours is `email`, login takes {"email": ..., "password": ...}.
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .views import ChangePasswordView, MeView, RegisterView, UpdateProfileView
+from .views import (
+    AdminUserListView,
+    ApproveDoctorView,
+    ChangePasswordView,
+    MeView,
+    RegisterView,
+    RejectDoctorView,
+    UpdateProfileView,
+)
 
 app_name = 'accounts'
 
@@ -19,4 +27,7 @@ urlpatterns = [
     path('me/', MeView.as_view(), name='me'),
     path('me/profile/', UpdateProfileView.as_view(), name='profile-update'),
     path('me/password/', ChangePasswordView.as_view(), name='change-password'),
+    path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
+    path('admin/doctors/<int:pk>/approve/', ApproveDoctorView.as_view(), name='approve-doctor'),
+    path('admin/doctors/<int:pk>/reject/', RejectDoctorView.as_view(), name='reject-doctor'),
 ]

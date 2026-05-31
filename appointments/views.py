@@ -1,8 +1,12 @@
 from django.db import IntegrityError, transaction
-from rest_framework import status
+from django.db.models import Q
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.models import User
+from core.pagination import StandardResultsSetPagination
 from core.permissions import IsPatient
 from doctors.models import DoctorAvailability
 
@@ -53,3 +57,47 @@ class BookAppointmentView(APIView):
         return Response(
             AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED
         )
+
+
+class MyAppointmentsView(generics.ListAPIView):
+    """GET /api/v1/appointments/ - the caller's appointments (patient or doctor).
+
+    Same component on the frontend for both roles, so one endpoint serves both.
+    Filters: ?status= , ?month=YYYY-MM , ?search= (doctor/patient name, specialty,
+    notes). Paginated 10 per page with ?page_size= for the "load more" button.
+    """
+
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Appointment.objects.select_related(
+            'doctor__user', 'doctor__specialty', 'patient'
+        )
+        if user.role == User.Role.DOCTOR:
+            qs = qs.filter(doctor_id=user.pk)
+        else:
+            qs = qs.filter(patient=user)
+
+        params = self.request.query_params
+        if params.get('status'):
+            qs = qs.filter(status=params['status'])
+
+        month = params.get('month')  # expects YYYY-MM
+        if month and '-' in month:
+            year, mon = month.split('-')[:2]
+            qs = qs.filter(date__year=year, date__month=mon)
+
+        search = params.get('search')
+        if search:
+            qs = qs.filter(
+                Q(doctor__user__first_name__icontains=search)
+                | Q(doctor__user__last_name__icontains=search)
+                | Q(patient__first_name__icontains=search)
+                | Q(patient__last_name__icontains=search)
+                | Q(doctor__specialty__name__icontains=search)
+                | Q(notes__icontains=search)
+            )
+        return qs

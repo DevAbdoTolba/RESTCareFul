@@ -1,9 +1,10 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsPatient
+from accounts.models import User
+from core.permissions import IsAdmin, IsPatient
 
 from .models import Payment
 from .paypal import new_capture_id, new_order_id
@@ -55,4 +56,35 @@ class CapturePaymentView(APIView):
         appt.amount_paid = payment.amount
         appt.save(update_fields=['paid', 'amount_paid', 'updated_at'])
 
+        return Response(PaymentSerializer(payment).data)
+
+
+class MyPaymentsView(generics.ListAPIView):
+    """GET /api/v1/payments/ - patient sees own, doctor sees received, admin all."""
+
+    serializer_class = PaymentSerializer
+
+    def get_queryset(self):
+        u = self.request.user
+        qs = Payment.objects.all()
+        if u.role == User.Role.PATIENT:
+            return qs.filter(patient=u)
+        if u.role == User.Role.DOCTOR:
+            return qs.filter(doctor_id=u.pk)
+        return qs
+
+
+class RefundPaymentView(APIView):
+    """POST /api/v1/payments/<id>/refund/ - admin marks a payment refunded."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        payment = get_object_or_404(Payment, pk=pk)
+        payment.status = Payment.Status.REFUNDED
+        payment.save(update_fields=['status', 'updated_at'])
+        appt = payment.appointment
+        appt.paid = False
+        appt.amount_paid = 0
+        appt.save(update_fields=['paid', 'amount_paid', 'updated_at'])
         return Response(PaymentSerializer(payment).data)

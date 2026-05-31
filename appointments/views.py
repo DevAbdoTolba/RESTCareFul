@@ -1,5 +1,6 @@
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,7 +8,7 @@ from rest_framework.views import APIView
 
 from accounts.models import User
 from core.pagination import StandardResultsSetPagination
-from core.permissions import IsPatient
+from core.permissions import IsDoctor, IsPatient
 from doctors.models import DoctorAvailability
 
 from .models import Appointment
@@ -101,3 +102,56 @@ class MyAppointmentsView(generics.ListAPIView):
                 | Q(notes__icontains=search)
             )
         return qs
+
+
+class CancelAppointmentView(APIView):
+    """POST /api/v1/appointments/<id>/cancel/ - patient cancels a pending booking.
+
+    Only allowed while still 'pending' (the requested phase). Cancelling frees
+    the doctor's availability window back up for someone else.
+    """
+
+    permission_classes = [IsPatient]
+
+    def post(self, request, pk):
+        appt = get_object_or_404(Appointment, pk=pk, patient=request.user)
+        if appt.status != Appointment.Status.PENDING:
+            return Response(
+                {'detail': 'Only a pending appointment can be cancelled.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        appt.status = Appointment.Status.CANCELLED
+        appt.save(update_fields=['status', 'updated_at'])
+        DoctorAvailability.objects.filter(
+            doctor=appt.doctor, date=appt.date, start_time=appt.time
+        ).update(is_available=True)
+        return Response(AppointmentSerializer(appt).data)
+
+
+class ManageAppointmentView(APIView):
+    """POST /api/v1/appointments/<id>/manage/ - the doctor moves it along.
+
+    Body: {"status": "confirmed|completed|cancelled", "notes": "..."}.
+    """
+
+    permission_classes = [IsDoctor]
+
+    ALLOWED = {
+        Appointment.Status.CONFIRMED,
+        Appointment.Status.COMPLETED,
+        Appointment.Status.CANCELLED,
+    }
+
+    def post(self, request, pk):
+        appt = get_object_or_404(Appointment, pk=pk, doctor_id=request.user.pk)
+        new_status = request.data.get('status')
+        if new_status not in self.ALLOWED:
+            return Response(
+                {'detail': f'status must be one of {sorted(self.ALLOWED)}.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        appt.status = new_status
+        if 'notes' in request.data:
+            appt.notes = request.data['notes']
+        appt.save(update_fields=['status', 'notes', 'updated_at'])
+        return Response(AppointmentSerializer(appt).data)

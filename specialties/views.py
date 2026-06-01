@@ -11,19 +11,25 @@ from .models import Specialty, SpecialtySuggestion
 from .serializers import SpecialtySerializer, SpecialtySuggestionSerializer
 
 
-class SpecialtyListView(generics.ListAPIView):
-    """GET /api/v1/specialties/ - open list, the guest landing page reads this."""
+class SpecialtyListView(generics.ListCreateAPIView):
+    """GET (public, landing page) + POST (admin creates a specialty)."""
 
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
-    permission_classes = [AllowAny]
     pagination_class = None
 
+    def get_permissions(self):
+        return [IsAdmin()] if self.request.method == 'POST' else [AllowAny()]
 
-class SpecialtyDetailView(generics.RetrieveAPIView):
+
+class SpecialtyDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """GET (public) + PATCH/DELETE (admin) for one specialty."""
+
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
-    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        return [AllowAny()] if self.request.method == 'GET' else [IsAdmin()]
 
 
 class SuggestionListCreateView(generics.ListCreateAPIView):

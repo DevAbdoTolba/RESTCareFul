@@ -77,6 +77,35 @@ class AdminUserListView(generics.ListAPIView):
         return qs
 
 
+class AdminUserDetailView(APIView):
+    """GET /api/v1/auth/admin/users/<id>/ — full user incl. doctor docs.
+
+    The approve dialog needs a pending doctor's résumé/license (which live on the
+    DoctorProfile, not the User), so they're merged in here.
+    """
+
+    permission_classes = [IsAdmin]
+
+    def get(self, request, pk):
+        user = get_object_or_404(User, pk=pk)
+        data = UserSerializer(user).data
+        if user.role == User.Role.DOCTOR:
+            from doctors.models import DoctorProfile
+
+            prof = DoctorProfile.objects.select_related('specialty').filter(pk=user.pk).first()
+            if prof:
+                data.update(
+                    {
+                        'specialty_id': prof.specialty_id,
+                        'specialty': prof.specialty.name if prof.specialty else None,
+                        'hourly_rate': prof.hourly_rate,
+                        'resume_url': prof.resume_url,
+                        'license_url': prof.license_url,
+                    }
+                )
+        return Response(data)
+
+
 class ApproveDoctorView(APIView):
     """POST /api/v1/auth/admin/doctors/<id>/approve/ — let the doctor be booked."""
 

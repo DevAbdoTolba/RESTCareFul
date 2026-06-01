@@ -1,6 +1,8 @@
+from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -43,6 +45,24 @@ class ApprovedDoctorListView(generics.ListAPIView):
                 user__last_name__icontains=search
             )
         return qs
+
+
+class BestDoctorsView(generics.ListAPIView):
+    """GET /api/v1/doctors/best/ - top rated doctors for the guest landing page.
+
+    public on purpose (the landing shows them before login), capped to 6.
+    """
+
+    serializer_class = DoctorPublicSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            approved_doctors()
+            .annotate(avg=Avg('ratings_received__stars'), n=Count('ratings_received'))
+            .order_by('-avg', '-n')[:6]
+        )
 
 
 class ApprovedDoctorDetailView(generics.RetrieveAPIView):

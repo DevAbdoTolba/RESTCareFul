@@ -13,6 +13,7 @@ from .views import (
     ApproveUpdateRequestView,
     ApprovedDoctorDetailView,
     ApprovedDoctorListView,
+    BestDoctorsView,
     DoctorOpenSlotsView,
     MyAvailabilityDeleteView,
     MyAvailabilityView,
@@ -25,6 +26,7 @@ app_name = 'doctors'
 
 urlpatterns = [
     path('', ApprovedDoctorListView.as_view(), name='list'),
+    path('best/', BestDoctorsView.as_view(), name='best'),
     # 'me/...' before '<int:pk>/' so the literal isn't swallowed as an id.
     path('me/', MyDoctorProfileView.as_view(), name='me'),
     path('me/availability/', MyAvailabilityView.as_view(), name='my-availability'),

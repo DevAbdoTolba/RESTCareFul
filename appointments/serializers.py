@@ -35,7 +35,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'patient_name',
             'patient_email',
             'created_at',
+            'my_rating',
         )
+
+    my_rating = serializers.SerializerMethodField()
 
     def _full_name(self, user):
         return f'{user.first_name} {user.last_name}'.strip() or user.email
@@ -45,6 +48,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     def get_patient_name(self, obj):
         return self._full_name(obj.patient)
+
+    def get_my_rating(self, obj):
+        # The (single) rating left for this appointment, embedded so the history
+        # UI doesn't need a second request to know if it's already rated.
+        from ratings.models import Rating
+
+        rating = Rating.objects.filter(appointment=obj).first()
+        return {'stars': rating.stars, 'comment': rating.comment} if rating else None
 
 
 class BookAppointmentSerializer(serializers.Serializer):

@@ -53,7 +53,7 @@ def test_patient_books_open_slot(api):
 @pytest.mark.django_db
 def test_cannot_book_past_slot(api):
     patient, doctor = make_patient(), make_doctor()
-    s = slot(doctor, days=-1)
+    s = slot(doctor, days=-3)  # safely in the past regardless of the UTC offset
     api.force_authenticate(patient)
     r = api.post(BOOK, {'availability': s.id}, format='json')
     assert r.status_code == 400

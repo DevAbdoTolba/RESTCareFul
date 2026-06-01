@@ -73,8 +73,9 @@ class MyAppointmentsView(generics.ListAPIView):
         qs = Appointment.objects.select_related('doctor__user', 'doctor__specialty', 'patient')
         if user.role == User.Role.DOCTOR:
             qs = qs.filter(doctor_id=user.pk)
-        else:
+        elif user.role == User.Role.PATIENT:
             qs = qs.filter(patient=user)
+        # admins see every appointment (drives the admin appointments page)
 
         params = self.request.query_params
         if params.get('status'):

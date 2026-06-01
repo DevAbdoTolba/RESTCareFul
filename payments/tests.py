@@ -15,6 +15,13 @@ def api():
     return APIClient()
 
 
+@pytest.fixture(autouse=True)
+def force_paypal_demo(monkeypatch):
+    """Keep tests offline + deterministic even if a local .env has real creds."""
+    monkeypatch.setattr('payments.paypal.PAYPAL_CLIENT_ID', '')
+    monkeypatch.setattr('payments.paypal.PAYPAL_CLIENT_SECRET', '')
+
+
 def setup_appointment(rate='100.00'):
     patient = User.objects.create_user(
         email='pat@test.com',
@@ -42,7 +49,9 @@ def test_create_then_capture_marks_paid(api):
 
     created = api.post('/api/v1/payments/create/', {'appointment': appt.id}, format='json')
     assert created.status_code == 201
-    assert created.data['paypal_order_id'].startswith('ORDER-')
+    # No PayPal creds in CI -> the gateway runs the offline DEMO flow.
+    assert created.data['demo'] is True
+    assert created.data['paypal_order_id'].startswith('DEMO-')
     payment_id = created.data['id']
 
     captured = api.post(f'/api/v1/payments/{payment_id}/capture/')

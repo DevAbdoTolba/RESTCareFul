@@ -4,7 +4,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from accounts.models import User
-from doctors.models import DocUpdateRequest, DoctorAvailability, DoctorProfile
+from doctors.models import DoctorAvailability, DoctorProfile, DocUpdateRequest
 
 
 @pytest.fixture
@@ -14,8 +14,12 @@ def api():
 
 def make_doctor(email='doc@test.com', status=User.Status.APPROVED):
     u = User.objects.create_user(
-        email=email, password='doctor123', role=User.Role.DOCTOR, status=status,
-        first_name='Dr', last_name='Who',
+        email=email,
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=status,
+        first_name='Dr',
+        last_name='Who',
     )
     return DoctorProfile.objects.create(user=u)
 
@@ -25,7 +29,10 @@ def test_only_approved_doctors_are_listed(api):
     make_doctor('ok@test.com', status=User.Status.APPROVED)
     make_doctor('pending@test.com', status=User.Status.PENDING)
     patient = User.objects.create_user(
-        email='p@test.com', password='patient123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='p@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     api.force_authenticate(patient)
     r = api.get('/api/v1/doctors/')
@@ -47,15 +54,22 @@ def test_doctor_upserts_own_profile(api):
 def test_open_slots_hide_past_windows(api):
     prof = make_doctor()
     DoctorAvailability.objects.create(
-        doctor=prof, date=datetime.date.today() - datetime.timedelta(days=2),
-        start_time=datetime.time(9, 0), end_time=datetime.time(9, 30),
+        doctor=prof,
+        date=datetime.date.today() - datetime.timedelta(days=2),
+        start_time=datetime.time(9, 0),
+        end_time=datetime.time(9, 30),
     )
     DoctorAvailability.objects.create(
-        doctor=prof, date=datetime.date.today() + datetime.timedelta(days=2),
-        start_time=datetime.time(9, 0), end_time=datetime.time(9, 30),
+        doctor=prof,
+        date=datetime.date.today() + datetime.timedelta(days=2),
+        start_time=datetime.time(9, 0),
+        end_time=datetime.time(9, 30),
     )
     patient = User.objects.create_user(
-        email='p@test.com', password='patient123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='p@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     api.force_authenticate(patient)
     r = api.get(f'/api/v1/doctors/{prof.pk}/availability/')

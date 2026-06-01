@@ -10,9 +10,9 @@ from django.urls import path
 
 from .views import (
     AdminUpdateRequestListView,
-    ApproveUpdateRequestView,
     ApprovedDoctorDetailView,
     ApprovedDoctorListView,
+    ApproveUpdateRequestView,
     BestDoctorsView,
     DoctorOpenSlotsView,
     MyAvailabilityDeleteView,

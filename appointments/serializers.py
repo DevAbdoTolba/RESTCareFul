@@ -50,9 +50,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class BookAppointmentSerializer(serializers.Serializer):
     """Patient books by picking one of a doctor's open availability windows."""
 
-    availability = serializers.PrimaryKeyRelatedField(
-        queryset=DoctorAvailability.objects.all()
-    )
+    availability = serializers.PrimaryKeyRelatedField(queryset=DoctorAvailability.objects.all())
     notes = serializers.CharField(required=False, allow_blank=True, default='')
 
     def validate_availability(self, slot):

@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import DocUpdateRequest, DoctorAvailability, DoctorProfile
+from .models import DoctorAvailability, DoctorProfile, DocUpdateRequest
 
 
 class DoctorPublicSerializer(serializers.ModelSerializer):

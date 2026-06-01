@@ -9,13 +9,13 @@ from rest_framework.views import APIView
 from accounts.models import User
 from core.permissions import IsAdmin, IsDoctor
 
-from .models import DocUpdateRequest, DoctorAvailability, DoctorProfile
+from .models import DoctorAvailability, DoctorProfile, DocUpdateRequest
 from .serializers import (
-    DocUpdateRequestSerializer,
     DoctorAvailabilitySerializer,
     DoctorProfileSerializer,
     DoctorProfileWriteSerializer,
     DoctorPublicSerializer,
+    DocUpdateRequestSerializer,
 )
 
 

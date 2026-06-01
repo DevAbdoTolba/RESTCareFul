@@ -16,15 +16,24 @@ def api():
 
 def completed_appointment(status=Appointment.Status.COMPLETED):
     patient = User.objects.create_user(
-        email='pat@test.com', password='patient123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='pat@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     du = User.objects.create_user(
-        email='doc@test.com', password='doctor123', role=User.Role.DOCTOR, status=User.Status.APPROVED
+        email='doc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.APPROVED,
     )
     doctor = DoctorProfile.objects.create(user=du)
     appt = Appointment.objects.create(
-        patient=patient, doctor=doctor, date=datetime.date.today(),
-        time=datetime.time(10, 0), status=status,
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today(),
+        time=datetime.time(10, 0),
+        status=status,
     )
     return patient, doctor, appt
 
@@ -33,7 +42,9 @@ def completed_appointment(status=Appointment.Status.COMPLETED):
 def test_patient_rates_completed_visit(api):
     patient, doctor, appt = completed_appointment()
     api.force_authenticate(patient)
-    r = api.post('/api/v1/ratings/', {'appointment': appt.id, 'stars': 5, 'comment': 'great'}, format='json')
+    r = api.post(
+        '/api/v1/ratings/', {'appointment': appt.id, 'stars': 5, 'comment': 'great'}, format='json'
+    )
     assert r.status_code == 201
     assert Rating.objects.filter(appointment=appt, stars=5).exists()
 

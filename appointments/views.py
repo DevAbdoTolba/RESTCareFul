@@ -32,9 +32,7 @@ class BookAppointmentView(APIView):
 
         try:
             with transaction.atomic():
-                locked = (
-                    DoctorAvailability.objects.select_for_update().get(pk=slot.pk)
-                )
+                locked = DoctorAvailability.objects.select_for_update().get(pk=slot.pk)
                 if not locked.is_available:
                     return Response(
                         {'detail': 'That slot was just taken.'},
@@ -55,9 +53,7 @@ class BookAppointmentView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        return Response(
-            AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED
-        )
+        return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
 
 
 class MyAppointmentsView(generics.ListAPIView):
@@ -74,9 +70,7 @@ class MyAppointmentsView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        qs = Appointment.objects.select_related(
-            'doctor__user', 'doctor__specialty', 'patient'
-        )
+        qs = Appointment.objects.select_related('doctor__user', 'doctor__specialty', 'patient')
         if user.role == User.Role.DOCTOR:
             qs = qs.filter(doctor_id=user.pk)
         else:

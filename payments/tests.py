@@ -17,10 +17,16 @@ def api():
 
 def setup_appointment(rate='100.00'):
     patient = User.objects.create_user(
-        email='pat@test.com', password='patient123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='pat@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     du = User.objects.create_user(
-        email='doc@test.com', password='doctor123', role=User.Role.DOCTOR, status=User.Status.APPROVED
+        email='doc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.APPROVED,
     )
     doctor = DoctorProfile.objects.create(user=du, hourly_rate=Decimal(rate))
     appt = Appointment.objects.create(
@@ -52,7 +58,10 @@ def test_create_then_capture_marks_paid(api):
 def test_cannot_pay_someone_elses_appointment(api):
     _, _, appt = setup_appointment()
     intruder = User.objects.create_user(
-        email='intruder@test.com', password='patient123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='intruder@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     api.force_authenticate(intruder)
     r = api.post('/api/v1/payments/create/', {'appointment': appt.id}, format='json')

@@ -20,9 +20,9 @@ class DashboardMetricsView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        total_paid = Payment.objects.filter(status=Payment.Status.PAID).aggregate(
-            s=Sum('amount')
-        )['s'] or Decimal('0')
+        total_paid = Payment.objects.filter(status=Payment.Status.PAID).aggregate(s=Sum('amount'))[
+            's'
+        ] or Decimal('0')
         avg_rating = Rating.objects.aggregate(a=Avg('stars'))['a']
 
         return Response(

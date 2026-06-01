@@ -86,9 +86,7 @@ class DocUpdateRequest(models.Model):
     doctor_name = models.CharField(max_length=150, blank=True)
     resume_url = models.TextField(blank=True)
     license_url = models.TextField(blank=True)
-    status = models.CharField(
-        max_length=10, choices=Status.choices, default=Status.PENDING
-    )
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

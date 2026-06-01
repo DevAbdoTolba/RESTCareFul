@@ -99,7 +99,10 @@ def test_me_returns_the_current_user(api):
 def test_admin_approves_a_pending_doctor(api):
     admin = User.objects.create_superuser(email='admin@test.com', password='admin1234')
     doctor = User.objects.create_user(
-        email='doc@test.com', password='doctor123', role=User.Role.DOCTOR, status=User.Status.PENDING
+        email='doc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.PENDING,
     )
     api.force_authenticate(admin)
     r = api.post(f'/api/v1/auth/admin/doctors/{doctor.id}/approve/')
@@ -111,10 +114,16 @@ def test_admin_approves_a_pending_doctor(api):
 @pytest.mark.django_db
 def test_non_admin_cannot_approve_doctors(api):
     patient = User.objects.create_user(
-        email='p@test.com', password='patient123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='p@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     doctor = User.objects.create_user(
-        email='doc@test.com', password='doctor123', role=User.Role.DOCTOR, status=User.Status.PENDING
+        email='doc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.PENDING,
     )
     api.force_authenticate(patient)
     assert api.post(f'/api/v1/auth/admin/doctors/{doctor.id}/approve/').status_code == 403
@@ -122,11 +131,21 @@ def test_non_admin_cannot_approve_doctors(api):
 
 @pytest.mark.django_db
 def test_change_password_requires_correct_old_one(api):
-    user = User.objects.create_user(email='u@test.com', password='secret123', status=User.Status.APPROVED)
+    user = User.objects.create_user(
+        email='u@test.com', password='secret123', status=User.Status.APPROVED
+    )
     api.force_authenticate(user)
-    bad = api.post('/api/v1/auth/me/password/', {'old_password': 'WRONG', 'new_password': 'brandnew1'}, format='json')
+    bad = api.post(
+        '/api/v1/auth/me/password/',
+        {'old_password': 'WRONG', 'new_password': 'brandnew1'},
+        format='json',
+    )
     assert bad.status_code == 400
-    ok = api.post('/api/v1/auth/me/password/', {'old_password': 'secret123', 'new_password': 'brandnew1'}, format='json')
+    ok = api.post(
+        '/api/v1/auth/me/password/',
+        {'old_password': 'secret123', 'new_password': 'brandnew1'},
+        format='json',
+    )
     assert ok.status_code == 200
     user.refresh_from_db()
     assert user.check_password('brandnew1')
@@ -135,7 +154,10 @@ def test_change_password_requires_correct_old_one(api):
 @pytest.mark.django_db
 def test_profile_update_cannot_change_role(api):
     user = User.objects.create_user(
-        email='u@test.com', password='secret123', role=User.Role.PATIENT, status=User.Status.APPROVED
+        email='u@test.com',
+        password='secret123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
     )
     api.force_authenticate(user)
     r = api.patch('/api/v1/auth/me/profile/', {'first_name': 'New', 'role': 'admin'}, format='json')

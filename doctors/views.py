@@ -23,6 +23,7 @@ def approved_doctors():
     return (
         DoctorProfile.objects.select_related('user', 'specialty')
         .filter(user__role=User.Role.DOCTOR, user__status=User.Status.APPROVED)
+        .order_by('user__first_name', 'pk')  # stable order so pagination is consistent
     )
 
 

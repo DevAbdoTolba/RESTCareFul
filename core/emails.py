@@ -77,6 +77,25 @@ def notify_patient_appointment_confirmed(patient_email, patient_name, doctor_nam
     )
 
 
+def notify_visit_completed_doctor(doctor_email, doctor_name, patient_name, date, time):
+    _send(
+        doctor_email,
+        'Thank you for seeing your patient',
+        f'Hi Dr. {doctor_name},\n\nYour appointment with {patient_name} on {date} at {time} is '
+        'now complete. Thank you for the care you provide on useCare.',
+    )
+
+
+def notify_visit_completed_patient(patient_email, patient_name, doctor_name, date, time, rate_url):
+    _send(
+        patient_email,
+        'How was your visit? Rate your doctor',
+        f'Hi {patient_name},\n\nThank you for visiting Dr. {doctor_name} on {date} at {time}. '
+        'We hope it went well!\n\nWould you take a moment to rate your doctor? It helps other '
+        f'patients choose the right care:\n{rate_url}',
+    )
+
+
 def notify_specialty_decision(doctor_email, doctor_name, specialty_name, approved):
     if approved:
         subject = 'Your proposed specialty was approved'

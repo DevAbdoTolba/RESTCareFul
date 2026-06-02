@@ -153,6 +153,10 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 
+# Public base URL of the React app — used to build links inside emails
+# (e.g. the "rate your doctor" link).
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
 # --- Email ------------------------------------------------------------------
 # Gmail SMTP via an app password. With no credentials we fall back to the
 # console backend, so dev/CI never tries to actually send. Notification sends

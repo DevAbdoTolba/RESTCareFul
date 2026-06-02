@@ -41,6 +41,15 @@ def test_only_approved_doctors_are_listed(api):
 
 
 @pytest.mark.django_db
+def test_guest_can_list_doctors(api):
+    # The landing-page search must work BEFORE login (guest gets 200, not 401).
+    make_doctor('ok@test.com', status=User.Status.APPROVED)
+    r = api.get('/api/v1/doctors/')
+    assert r.status_code == 200
+    assert r.data['count'] == 1
+
+
+@pytest.mark.django_db
 def test_doctor_upserts_own_profile(api):
     prof = make_doctor()
     api.force_authenticate(prof.user)

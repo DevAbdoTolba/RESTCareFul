@@ -30,9 +30,14 @@ def approved_doctors():
 class ApprovedDoctorListView(generics.ListAPIView):
     """GET /api/v1/doctors/ - browse approved doctors.
 
+    Public so a guest can run their landing-page searches before signing in; the
+    front-end limits guests to a couple of searches and gates *viewing a doctor's
+    details / booking* behind login. The detail endpoint below stays auth-only.
+
     ?search=<name> matches first/last name, ?specialty=<id> filters by specialty.
     """
 
+    permission_classes = [AllowAny]
     serializer_class = DoctorPublicSerializer
 
     def get_queryset(self):

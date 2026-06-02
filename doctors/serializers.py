@@ -61,6 +61,12 @@ class DoctorProfileWriteSerializer(serializers.ModelSerializer):
         model = DoctorProfile
         fields = ('specialty', 'hourly_rate', 'resume_url', 'license_url')
 
+    def validate_specialty(self, value):
+        # A doctor must always have a specialty — it can be changed, never cleared.
+        if value is None:
+            raise serializers.ValidationError('A doctor must have a specialty.')
+        return value
+
 
 class DoctorAvailabilitySerializer(serializers.ModelSerializer):
     """an open window the doctor declares. is_available flips when booked."""
@@ -79,14 +85,18 @@ class DoctorAvailabilitySerializer(serializers.ModelSerializer):
 class DocUpdateRequestSerializer(serializers.ModelSerializer):
     """doctor files a resume/license change, admin approves it onto the profile."""
 
+    # doctor pk == the user id, so the admin UI can map a request to a user row.
+    doctor_id = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = DocUpdateRequest
         fields = (
             'id',
+            'doctor_id',
             'doctor_name',
             'resume_url',
             'license_url',
             'status',
             'created_at',
         )
-        read_only_fields = ('doctor_name', 'status', 'created_at')
+        read_only_fields = ('doctor_id', 'doctor_name', 'status', 'created_at')

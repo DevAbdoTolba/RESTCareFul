@@ -230,6 +230,7 @@ class ApproveUpdateRequestView(APIView):
         prof.save(update_fields=['resume_url', 'license_url', 'updated_at'])
         req.status = DocUpdateRequest.Status.APPROVED
         req.save(update_fields=['status'])
+        _notify_doc_request(req, approved=True)
         return Response(DocUpdateRequestSerializer(req).data)
 
 
@@ -240,4 +241,14 @@ class RejectUpdateRequestView(APIView):
         req = get_object_or_404(DocUpdateRequest, pk=pk)
         req.status = DocUpdateRequest.Status.REJECTED
         req.save(update_fields=['status'])
+        _notify_doc_request(req, approved=False)
         return Response(DocUpdateRequestSerializer(req).data)
+
+
+def _notify_doc_request(req, *, approved):
+    """Email the doctor that their resume/license update was approved/rejected."""
+    user = req.doctor.user
+    from core.emails import notify_doc_update_decision
+
+    name = f'{user.first_name} {user.last_name}'.strip() or user.email
+    notify_doc_update_decision(user.email, name, approved=approved)

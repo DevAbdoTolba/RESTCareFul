@@ -75,6 +75,38 @@ def test_taken_slot_cannot_be_rebooked(api):
 
 
 @pytest.mark.django_db
+def test_patient_cannot_double_book_the_same_time(api):
+    """A patient can't hold two appointments at the same date+time — even with
+    two different doctors, and the clash is rejected before any payment."""
+    patient = make_patient()
+    doc_a, doc_b = make_doctor('doca@test.com'), make_doctor('docb@test.com')
+    sa, sb = slot(doc_a), slot(doc_b)  # same day, same 10:00 time, different doctors
+    api.force_authenticate(patient)
+
+    first = api.post(BOOK, {'doctor': doc_a.pk, 'date': str(sa.date), 'time': '10:00'}, format='json')
+    assert first.status_code == 201
+    second = api.post(BOOK, {'doctor': doc_b.pk, 'date': str(sb.date), 'time': '10:00'}, format='json')
+    assert second.status_code == 409
+
+
+@pytest.mark.django_db
+def test_doctor_cannot_be_double_booked_at_the_same_time(api):
+    """Two different patients can't take the same doctor's exact slot."""
+    doctor = make_doctor()
+    p1, p2 = make_patient('p1@test.com'), make_patient('p2@test.com')
+    s = slot(doctor)
+
+    api.force_authenticate(p1)
+    assert (
+        api.post(BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json').status_code
+        == 201
+    )
+    api.force_authenticate(p2)
+    clash = api.post(BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json')
+    assert clash.status_code == 409
+
+
+@pytest.mark.django_db
 def test_my_appointments_scoped_to_caller(api):
     patient, doctor = make_patient(), make_doctor()
     Appointment.objects.create(

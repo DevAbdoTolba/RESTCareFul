@@ -32,6 +32,21 @@ class BookAppointmentView(APIView):
         prof = data['doctor_profile']
 
         with transaction.atomic():
+            # A patient can't be in two places at once: reject if they already
+            # hold a live (non-cancelled) appointment at this exact date+time,
+            # even with a different doctor. Checked before payment.
+            patient_clash = (
+                Appointment.objects.select_for_update()
+                .filter(patient=request.user, date=data['date'], time=data['time'])
+                .exclude(status=Appointment.Status.CANCELLED)
+                .exists()
+            )
+            if patient_clash:
+                return Response(
+                    {'detail': 'You already have an appointment at that time.'},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
             existing = (
                 Appointment.objects.select_for_update()
                 .filter(doctor=prof, date=data['date'], time=data['time'])

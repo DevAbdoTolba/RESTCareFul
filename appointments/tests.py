@@ -123,6 +123,59 @@ def test_my_appointments_scoped_to_caller(api):
 
 
 @pytest.mark.django_db
+def test_overdue_unconfirmed_appointment_is_expired_and_payment_revoked():
+    """A PENDING booking whose time has passed -> OUTDATED, money revoked."""
+    from decimal import Decimal
+
+    from appointments.services import expire_overdue_appointments
+    from payments.models import Payment
+
+    patient, doctor = make_patient(), make_doctor()
+    appt = Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today() - datetime.timedelta(days=2),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.PENDING,
+        paid=True,
+        amount_paid=Decimal('100.00'),
+    )
+    payment = Payment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        appointment=appt,
+        amount=Decimal('100.00'),
+        status=Payment.Status.PAID,
+    )
+
+    assert expire_overdue_appointments() == 1
+
+    appt.refresh_from_db()
+    payment.refresh_from_db()
+    assert appt.status == Appointment.Status.OUTDATED
+    assert appt.paid is False
+    assert payment.status == Payment.Status.REFUNDED
+
+
+@pytest.mark.django_db
+def test_confirmed_overdue_appointment_is_left_alone():
+    """Only unconfirmed (PENDING) bookings expire — a CONFIRMED past visit stays."""
+    from appointments.services import expire_overdue_appointments
+
+    patient, doctor = make_patient(), make_doctor()
+    appt = Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today() - datetime.timedelta(days=2),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.CONFIRMED,
+    )
+    assert expire_overdue_appointments() == 0
+    appt.refresh_from_db()
+    assert appt.status == Appointment.Status.CONFIRMED
+
+
+@pytest.mark.django_db
 def test_patient_cancels_pending_and_frees_slot(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor)

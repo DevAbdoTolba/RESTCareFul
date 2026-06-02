@@ -91,6 +91,12 @@ class MyAppointmentsView(generics.ListAPIView):
     pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
+        # Sweep overdue-unconfirmed bookings to OUTDATED (+ refund) before listing
+        # so the caller always sees current statuses without needing a cron.
+        from .services import expire_overdue_appointments
+
+        expire_overdue_appointments()
+
         user = self.request.user
         qs = Appointment.objects.select_related('doctor__user', 'doctor__specialty', 'patient')
         if user.role == User.Role.DOCTOR:

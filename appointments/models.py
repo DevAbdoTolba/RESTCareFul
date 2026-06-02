@@ -8,6 +8,7 @@ class Appointment(models.Model):
         CONFIRMED = 'confirmed', 'Confirmed'  # doctor accepted
         CANCELLED = 'cancelled', 'Cancelled'
         COMPLETED = 'completed', 'Completed'  # visit happened
+        OUTDATED = 'outdated', 'Outdated'  # time passed while still unconfirmed -> auto-expired
 
     date = models.DateField()
     time = models.TimeField()

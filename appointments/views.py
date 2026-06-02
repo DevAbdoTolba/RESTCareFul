@@ -148,6 +148,10 @@ class CancelAppointmentView(APIView):
         DoctorAvailability.objects.filter(
             doctor=appt.doctor, date=appt.date, start_time=appt.time
         ).update(is_available=True)
+        # Cancelling gives the money back (refund + drop from dashboard totals).
+        from .services import revoke_payment
+
+        revoke_payment(appt)
         return Response(AppointmentSerializer(appt).data)
 
 
@@ -173,18 +177,20 @@ class ManageAppointmentView(APIView):
                 {'detail': f'status must be one of {sorted(self.ALLOWED)}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        # A doctor can only confirm/complete a booking the patient has paid for;
-        # an unpaid one can still be cancelled.
-        if (
-            new_status in (Appointment.Status.CONFIRMED, Appointment.Status.COMPLETED)
-            and not appt.paid
-        ):
+        # An unpaid booking is off-limits to the doctor — they can ONLY cancel it.
+        # No confirming, completing, or note edits until the patient has paid.
+        if not appt.paid and new_status != Appointment.Status.CANCELLED:
             return Response(
-                {'detail': "The patient hasn't paid yet — you can't confirm this appointment."},
+                {'detail': "The patient hasn't paid yet — you can only cancel this appointment."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         appt.status = new_status
         if 'notes' in request.data:
             appt.notes = request.data['notes']
         appt.save(update_fields=['status', 'notes', 'updated_at'])
+        # A cancelled booking refunds the patient (drops from dashboard totals).
+        if new_status == Appointment.Status.CANCELLED:
+            from .services import revoke_payment
+
+            revoke_payment(appt)
         return Response(AppointmentSerializer(appt).data)

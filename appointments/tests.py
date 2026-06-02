@@ -58,6 +58,21 @@ def test_cannot_book_past_slot(api):
 
 
 @pytest.mark.django_db
+def test_cannot_book_a_half_hour_slot(api):
+    """Only on-the-hour appointments are allowed — 09:30 is rejected, 09:00 isn't."""
+    patient, doctor = make_patient(), make_doctor()
+    d = datetime.date.today() + datetime.timedelta(days=3)
+    DoctorAvailability.objects.create(
+        doctor=doctor, date=d, start_time=datetime.time(9, 0), end_time=datetime.time(17, 0)
+    )
+    api.force_authenticate(patient)
+    bad = api.post(BOOK, {'doctor': doctor.pk, 'date': str(d), 'time': '09:30'}, format='json')
+    assert bad.status_code == 400
+    good = api.post(BOOK, {'doctor': doctor.pk, 'date': str(d), 'time': '09:00'}, format='json')
+    assert good.status_code == 201
+
+
+@pytest.mark.django_db
 def test_taken_slot_cannot_be_rebooked(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor)
@@ -219,6 +234,42 @@ def test_doctor_cannot_confirm_an_unpaid_appointment(api):
     ok = api.post(manage, {'status': 'confirmed'}, format='json')
     assert ok.status_code == 200
     assert ok.data['status'] == 'confirmed'
+
+
+@pytest.mark.django_db
+def test_cancelling_a_paid_appointment_refunds_the_money(api):
+    """Cancelling gives the money back: payment REFUNDED, appointment unpaid."""
+    from decimal import Decimal
+
+    from payments.models import Payment
+
+    patient, doctor = make_patient(), make_doctor()
+    s = slot(doctor)
+    api.force_authenticate(patient)
+    appt_id = api.post(
+        BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json'
+    ).data['id']
+
+    appt = Appointment.objects.get(id=appt_id)
+    appt.paid = True
+    appt.amount_paid = Decimal('100.00')
+    appt.save(update_fields=['paid', 'amount_paid'])
+    payment = Payment.objects.create(
+        appointment=appt,
+        patient=patient,
+        doctor=doctor,
+        amount=Decimal('100.00'),
+        status=Payment.Status.PAID,
+    )
+
+    r = api.post(f'/api/v1/appointments/{appt_id}/cancel/')
+    assert r.status_code == 200
+
+    appt.refresh_from_db()
+    payment.refresh_from_db()
+    assert appt.status == Appointment.Status.CANCELLED
+    assert appt.paid is False
+    assert payment.status == Payment.Status.REFUNDED
 
 
 @pytest.mark.django_db

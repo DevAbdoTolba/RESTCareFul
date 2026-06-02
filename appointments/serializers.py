@@ -29,6 +29,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'notes',
             'paid',
             'amount_paid',
+            'fee',
             'doctor_id',
             'doctor_name',
             'doctor_specialty',
@@ -41,6 +42,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     my_rating = serializers.SerializerMethodField()
     display_status = serializers.SerializerMethodField()
+    # The doctor's consultation fee — what the patient owes if it's still unpaid.
+    fee = serializers.DecimalField(
+        source='doctor.hourly_rate', max_digits=8, decimal_places=2, read_only=True, default=None
+    )
 
     def get_display_status(self, obj):
         # `paid` is a standalone flag, so a still-unpaid pending booking reads as
@@ -87,6 +92,10 @@ class BookAppointmentSerializer(serializers.Serializer):
         ).first()
         if prof is None:
             raise serializers.ValidationError({'doctor': 'No such approved doctor.'})
+
+        # We only serve on-the-hour appointments (09:00, 10:00, …) — no half-hours.
+        if attrs['time'].minute != 0 or attrs['time'].second != 0:
+            raise serializers.ValidationError('Appointments are on the hour only (e.g. 09:00).')
 
         now = timezone.now()
         if attrs['date'] < now.date() or (

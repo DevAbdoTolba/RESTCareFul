@@ -39,3 +39,22 @@ def expire_overdue_appointments():
         status=Appointment.Status.OUTDATED, paid=False, amount_paid=0
     )
     return len(ids)
+
+
+def revoke_payment(appt):
+    """Refund a single appointment's money and clear its paid flag.
+
+    Any PAID payment becomes REFUNDED (so it drops out of the dashboard totals)
+    and the appointment reads as unpaid again. Used when a booking is cancelled.
+    Returns True if there was money to give back.
+    """
+    from payments.models import Payment  # local import: payments depends on appointments
+
+    refunded = Payment.objects.filter(appointment=appt, status=Payment.Status.PAID).update(
+        status=Payment.Status.REFUNDED
+    )
+    if appt.paid or refunded:
+        appt.paid = False
+        appt.amount_paid = 0
+        appt.save(update_fields=['paid', 'amount_paid', 'updated_at'])
+    return bool(refunded)

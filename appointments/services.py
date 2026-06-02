@@ -41,6 +41,63 @@ def expire_overdue_appointments():
     return len(ids)
 
 
+def _name(user):
+    return f'{user.first_name} {user.last_name}'.strip() or user.email
+
+
+def complete_due_appointments():
+    """Mark CONFIRMED bookings COMPLETED once their time has passed.
+
+    On the transition we thank both parties by email; the patient's email
+    carries a link to rate the doctor. The status flip is a conditional update
+    (WHERE status=CONFIRMED), so only the read that actually wins the race sends
+    the emails — no duplicates even if two requests sweep at once.
+
+    Idempotent + cheap; safe to call on the appointment list / dashboard reads.
+    Returns the number of appointments completed.
+    """
+    from django.conf import settings
+
+    from core import emails
+
+    now = timezone.now()
+    due = (
+        Appointment.objects.filter(status=Appointment.Status.CONFIRMED)
+        .filter(Q(date__lt=now.date()) | Q(date=now.date(), time__lte=now.time()))
+        .select_related('patient', 'doctor__user')
+    )
+    base = settings.FRONTEND_URL.rstrip('/')
+    count = 0
+    for appt in due:
+        flipped = Appointment.objects.filter(
+            id=appt.id, status=Appointment.Status.CONFIRMED
+        ).update(status=Appointment.Status.COMPLETED)
+        if not flipped:
+            continue
+        count += 1
+        patient, doctor_user = appt.patient, appt.doctor.user
+        patient_name, doctor_name = _name(patient), _name(doctor_user)
+        when_time = appt.time.strftime('%H:%M')
+        emails.notify_visit_completed_patient(
+            patient.email,
+            patient_name,
+            doctor_name,
+            appt.date,
+            when_time,
+            f'{base}/patient/rate/{appt.id}',
+        )
+        emails.notify_visit_completed_doctor(
+            doctor_user.email, doctor_name, patient_name, appt.date, when_time
+        )
+    return count
+
+
+def sweep_appointments():
+    """Run both time-based transitions together (call this from list/dashboard reads)."""
+    expire_overdue_appointments()
+    complete_due_appointments()
+
+
 def revoke_payment(appt):
     """Refund a single appointment's money and clear its paid flag.
 

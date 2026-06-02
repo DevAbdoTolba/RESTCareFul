@@ -173,8 +173,8 @@ def test_overdue_unconfirmed_appointment_is_expired_and_payment_revoked():
 
 
 @pytest.mark.django_db
-def test_confirmed_overdue_appointment_is_left_alone():
-    """Only unconfirmed (PENDING) bookings expire — a CONFIRMED past visit stays."""
+def test_confirmed_overdue_appointment_is_left_alone_by_the_expiry_sweep():
+    """Only unconfirmed (PENDING) bookings expire to OUTDATED."""
     from appointments.services import expire_overdue_appointments
 
     patient, doctor = make_patient(), make_doctor()
@@ -188,6 +188,39 @@ def test_confirmed_overdue_appointment_is_left_alone():
     assert expire_overdue_appointments() == 0
     appt.refresh_from_db()
     assert appt.status == Appointment.Status.CONFIRMED
+
+
+@pytest.mark.django_db
+def test_confirmed_due_appointment_completes_and_emails_both():
+    """A CONFIRMED booking whose time passed -> COMPLETED, thanking both parties;
+    the patient gets a 'rate your doctor' link, and it can then be rated."""
+    from django.core import mail
+
+    from appointments.services import complete_due_appointments
+
+    patient, doctor = make_patient(), make_doctor()
+    appt = Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today() - datetime.timedelta(days=1),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.CONFIRMED,
+        paid=True,
+    )
+    mail.outbox.clear()
+    assert complete_due_appointments() == 1
+
+    appt.refresh_from_db()
+    assert appt.status == Appointment.Status.COMPLETED
+    # One email to the patient (with a rate link) and one to the doctor.
+    assert len(mail.outbox) == 2
+    patient_mail = next(m for m in mail.outbox if patient.email in m.to)
+    assert f'/patient/rate/{appt.id}' in patient_mail.body
+
+    # A second sweep is a no-op (already completed) — no duplicate emails.
+    mail.outbox.clear()
+    assert complete_due_appointments() == 0
+    assert mail.outbox == []
 
 
 @pytest.mark.django_db

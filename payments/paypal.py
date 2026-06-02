@@ -53,8 +53,13 @@ def configured():
 
 
 def offline():
-    """No creds, or the fake-capture hatch -> run the local DEMO flow."""
-    return (not configured()) or PAYPAL_FAKE_CAPTURE
+    """No creds at all -> run the fully-local DEMO flow (never touch PayPal).
+
+    Note this is NOT the fake-capture hatch: with real creds we still create a
+    real order + real approval redirect; PAYPAL_FAKE_CAPTURE only short-circuits
+    the capture step (see capture_order), exactly like the find_job project.
+    """
+    return not configured()
 
 
 def _http(method, path, *, token=None, json_body=None, form_body=None, headers=None):
@@ -145,8 +150,13 @@ def create_order(amount, *, currency=None, reference=None, return_url=None, canc
 
 
 def capture_order(order_id):
-    """Step 2 — returns {status, capture_id, demo, raw}. Raises PayPalError on HTTP failure."""
-    if offline():
+    """Step 2 — returns {status, capture_id, demo, raw}. Raises PayPalError on HTTP failure.
+
+    Bypassed when there are no creds (full demo) OR when PAYPAL_FAKE_CAPTURE is
+    set — a dev-only hatch for when the sandbox account keeps answering capture
+    with COMPLIANCE_VIOLATION (an account-side error nothing in code can fix).
+    """
+    if offline() or PAYPAL_FAKE_CAPTURE:
         return {
             'status': 'COMPLETED',
             'capture_id': 'DEMOCAP-' + uuid.uuid4().hex[:16].upper(),

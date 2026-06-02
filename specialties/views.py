@@ -62,6 +62,7 @@ class SuggestionApproveView(APIView):
         suggestion.status = SpecialtySuggestion.Status.APPROVED
         suggestion.save(update_fields=['status'])
         specialty, _ = Specialty.objects.get_or_create(name=suggestion.name)
+        _notify_suggestion(suggestion, approved=True)
         return Response(SpecialtySerializer(specialty).data)
 
 
@@ -72,4 +73,16 @@ class SuggestionRejectView(APIView):
         suggestion = get_object_or_404(SpecialtySuggestion, pk=pk)
         suggestion.status = SpecialtySuggestion.Status.REJECTED
         suggestion.save(update_fields=['status'])
+        _notify_suggestion(suggestion, approved=False)
         return Response(SpecialtySuggestionSerializer(suggestion).data)
+
+
+def _notify_suggestion(suggestion, *, approved):
+    """Email the proposing doctor that their specialty was approved/rejected."""
+    doctor = suggestion.proposed_by
+    if not doctor:
+        return
+    from core.emails import notify_specialty_decision
+
+    name = f'{doctor.first_name} {doctor.last_name}'.strip() or doctor.email
+    notify_specialty_decision(doctor.email, name, suggestion.name, approved=approved)

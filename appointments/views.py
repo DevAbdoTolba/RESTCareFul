@@ -15,6 +15,10 @@ from .models import Appointment
 from .serializers import AppointmentSerializer, BookAppointmentSerializer
 
 
+def _name(user):
+    return f'{user.first_name} {user.last_name}'.strip() or user.email
+
+
 class BookAppointmentView(APIView):
     """POST /api/v1/appointments/book/ - a patient books an open slot.
 
@@ -75,6 +79,16 @@ class BookAppointmentView(APIView):
                     notes=data['notes'],
                 )
 
+        # Let the doctor know a patient just booked them (both names).
+        from core.emails import notify_doctor_new_appointment
+
+        notify_doctor_new_appointment(
+            prof.user.email,
+            _name(prof.user),
+            _name(request.user),
+            appointment.date,
+            appointment.time.strftime('%H:%M'),
+        )
         return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
 
 
@@ -200,4 +214,15 @@ class ManageAppointmentView(APIView):
             from .services import revoke_payment
 
             revoke_payment(appt)
+        # Tell the patient when the doctor confirms (both names).
+        if new_status == Appointment.Status.CONFIRMED:
+            from core.emails import notify_patient_appointment_confirmed
+
+            notify_patient_appointment_confirmed(
+                appt.patient.email,
+                _name(appt.patient),
+                _name(appt.doctor.user),
+                appt.date,
+                appt.time.strftime('%H:%M'),
+            )
         return Response(AppointmentSerializer(appt).data)

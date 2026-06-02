@@ -44,8 +44,14 @@ def test_platform_revenue_is_12_percent(api):
         status=User.Status.APPROVED,
     )
     doctor = DoctorProfile.objects.create(user=du, hourly_rate=Decimal('100.00'))
+    # A completed visit — a real paid booking that counts toward revenue (a
+    # still-PENDING, overdue one would be auto-expired + refunded instead).
     appt = Appointment.objects.create(
-        patient=patient, doctor=doctor, date=datetime.date.today(), time=datetime.time(10, 0)
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today(),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.COMPLETED,
     )
     Payment.objects.create(
         appointment=appt,

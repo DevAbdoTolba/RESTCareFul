@@ -151,6 +151,7 @@ class Command(BaseCommand):
         self._seed_availability(doctors, today)
         self._seed_history(doctors, patients, today)
         self._seed_upcoming(doctors, patients, today)
+        self._seed_outdated(doctors, patients, today)
         self._seed_proposals(doctors)
 
         self.stdout.write(
@@ -293,6 +294,32 @@ class Command(BaseCommand):
             )
             # window stays open; the 09:00 slot is simply excluded by the slots
             # endpoint (which drops already-booked times), the rest stay bookable.
+
+    def _seed_outdated(self, doctors, patients, today):
+        """A booking the doctor never confirmed in time: paid, but past + still
+        PENDING. The auto-expiry sweep flips it to OUTDATED and refunds the
+        payment on the next dashboard/appointments read, so the admin sees the
+        revoked money drop out of the totals live."""
+        profile = doctors['ahmed']
+        patient = patients['nour']
+        amount = profile.hourly_rate or Decimal('0')
+        appt = Appointment.objects.create(
+            patient=patient,
+            doctor=profile,
+            date=today - timedelta(days=5),
+            time=time(13, 0),
+            status=Appointment.Status.PENDING,
+            paid=True,
+            amount_paid=amount,
+        )
+        Payment.objects.create(
+            appointment=appt,
+            patient=patient,
+            doctor=profile,
+            amount=amount,
+            status=Payment.Status.PAID,
+            paypal_order_id='DEMO-SEEDED',
+        )
 
     def _seed_proposals(self, doctors):
         """A pending specialty suggestion + a pending resume/license update request."""

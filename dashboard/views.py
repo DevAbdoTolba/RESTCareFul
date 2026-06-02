@@ -20,6 +20,12 @@ class DashboardMetricsView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
+        # Expire overdue-unconfirmed bookings first, so any revoked (refunded)
+        # payments drop out of the totals below.
+        from appointments.services import expire_overdue_appointments
+
+        expire_overdue_appointments()
+
         total_paid = Payment.objects.filter(status=Payment.Status.PAID).aggregate(s=Sum('amount'))[
             's'
         ] or Decimal('0')

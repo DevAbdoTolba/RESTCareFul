@@ -22,4 +22,6 @@ urlpatterns = [
     path('api/v1/payments/', include('payments.urls', namespace='payments')),
     path('api/v1/ratings/', include('ratings.urls', namespace='ratings')),
     path('api/v1/dashboard/', include('dashboard.urls', namespace='dashboard')),
+    # Site-wide settings (theme). Public GET, admin PUT.
+    path('api/v1/settings/', include('core.urls', namespace='core')),
 ]

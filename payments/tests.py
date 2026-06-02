@@ -63,6 +63,28 @@ def test_create_then_capture_marks_paid(api):
     assert str(appt.amount_paid) == '100.00'
 
 
+def test_fake_capture_still_requires_buyer_approval(monkeypatch):
+    """PAYPAL_FAKE_CAPTURE bypasses the money-capture, NOT the approval gate.
+
+    Returning to the page without approving on PayPal must not mark a payment
+    paid: capture refuses unless the order is APPROVED/COMPLETED on PayPal.
+    """
+    from payments import paypal
+
+    monkeypatch.setattr(paypal, 'PAYPAL_CLIENT_ID', 'id')
+    monkeypatch.setattr(paypal, 'PAYPAL_CLIENT_SECRET', 'secret')
+    monkeypatch.setattr(paypal, 'PAYPAL_FAKE_CAPTURE', True)
+
+    # Buyer never approved -> order still CREATED -> capture must refuse.
+    monkeypatch.setattr(paypal, 'get_order', lambda _id: {'status': 'CREATED'})
+    with pytest.raises(paypal.PayPalError):
+        paypal.capture_order('ORDER-1')
+
+    # Buyer approved on PayPal -> the fake capture completes.
+    monkeypatch.setattr(paypal, 'get_order', lambda _id: {'status': 'APPROVED'})
+    assert paypal.capture_order('ORDER-1')['status'] == 'COMPLETED'
+
+
 @pytest.mark.django_db
 def test_cannot_pay_someone_elses_appointment(api):
     _, _, appt = setup_appointment()

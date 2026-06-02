@@ -52,6 +52,15 @@ def configured():
     return bool(PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET)
 
 
+def _fake_completed():
+    return {
+        'status': 'COMPLETED',
+        'capture_id': 'DEMOCAP-' + uuid.uuid4().hex[:16].upper(),
+        'demo': True,
+        'raw': {},
+    }
+
+
 def offline():
     """No creds at all -> run the fully-local DEMO flow (never touch PayPal).
 
@@ -152,17 +161,24 @@ def create_order(amount, *, currency=None, reference=None, return_url=None, canc
 def capture_order(order_id):
     """Step 2 — returns {status, capture_id, demo, raw}. Raises PayPalError on HTTP failure.
 
-    Bypassed when there are no creds (full demo) OR when PAYPAL_FAKE_CAPTURE is
-    set — a dev-only hatch for when the sandbox account keeps answering capture
-    with COMPLIANCE_VIOLATION (an account-side error nothing in code can fix).
+    No creds at all -> full local demo (CI / credential-less dev).
+
+    With creds + PAYPAL_FAKE_CAPTURE -> we bypass ONLY the money-capture POST
+    (the step the sandbox account rejects with COMPLIANCE_VIOLATION), but we
+    still demand the buyer actually approved the order on PayPal first. So a
+    patient can't get marked paid just by returning to the page without paying.
     """
-    if offline() or PAYPAL_FAKE_CAPTURE:
-        return {
-            'status': 'COMPLETED',
-            'capture_id': 'DEMOCAP-' + uuid.uuid4().hex[:16].upper(),
-            'demo': True,
-            'raw': {},
-        }
+    if offline():
+        return _fake_completed()
+
+    if PAYPAL_FAKE_CAPTURE:
+        order = get_order(order_id)
+        if order.get('status') not in ('APPROVED', 'COMPLETED'):
+            raise PayPalError(
+                f'Order not approved by the buyer (status {order.get("status")}).',
+                body={'name': 'ORDER_NOT_APPROVED', 'status': order.get('status')},
+            )
+        return _fake_completed()
 
     token = _access_token()
     data = _http(

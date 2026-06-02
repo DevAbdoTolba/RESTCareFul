@@ -6,7 +6,10 @@ Doubles as the reference example for the team: pytest-django style,
 Copy this shape into your own slice's tests/.
 """
 
+import datetime
+
 import pytest
+from django.core import mail
 from rest_framework.test import APIClient
 
 from accounts.models import User
@@ -19,6 +22,36 @@ ME = '/api/v1/auth/me/'
 @pytest.fixture
 def api():
     return APIClient()
+
+
+@pytest.mark.django_db
+def test_register_sends_a_welcome_email(api):
+    mail.outbox.clear()
+    api.post(
+        REGISTER,
+        {'email': 'pat@test.com', 'password': 'patient123', 'role': 'patient', 'first_name': 'Pat'},
+        format='json',
+    )
+    assert any('pat@test.com' in m.to and 'Welcome' in m.subject for m in mail.outbox)
+
+
+@pytest.mark.django_db
+def test_register_rejects_a_future_date_of_birth(api):
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+    r = api.post(
+        REGISTER,
+        {
+            'email': 'future@test.com',
+            'password': 'patient123',
+            'role': 'patient',
+            'first_name': 'Future',
+            'date_of_birth': str(tomorrow),
+        },
+        format='json',
+    )
+    assert r.status_code == 400
+    assert 'date_of_birth' in r.data
+    assert not User.objects.filter(email='future@test.com').exists()
 
 
 @pytest.mark.django_db

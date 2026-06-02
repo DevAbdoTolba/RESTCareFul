@@ -152,3 +152,24 @@ SIMPLE_JWT = {
 # Locked down by default — only origins listed in CORS_ALLOWED_ORIGINS may call us.
 CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
+
+# --- Email ------------------------------------------------------------------
+# Gmail SMTP via an app password. With no credentials we fall back to the
+# console backend, so dev/CI never tries to actually send. Notification sends
+# are best-effort and never break a request (see core.emails).
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+# Google shows the app password as 4 space-separated groups — strip the spaces
+# so it works whether the admin pastes it with or without them.
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='').replace(' ', '')
+DEFAULT_FROM_EMAIL = env(
+    'DEFAULT_FROM_EMAIL',
+    default=(f'useCare <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'useCare <no-reply@usecare.test>'),
+)
+EMAIL_BACKEND = (
+    'django.core.mail.backends.smtp.EmailBackend'
+    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
+    else 'django.core.mail.backends.console.EmailBackend'
+)

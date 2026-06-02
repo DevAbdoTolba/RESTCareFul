@@ -14,11 +14,21 @@ from .serializers import (
 )
 
 
+def _display_name(user):
+    return f'{user.first_name} {user.last_name}'.strip() or user.email
+
+
 class RegisterView(generics.CreateAPIView):
     """POST /api/v1/auth/register/ — open signup for patients and doctors."""
 
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        from core.emails import notify_account_created
+
+        notify_account_created(user.email, _display_name(user))
 
 
 class MeView(generics.RetrieveAPIView):
@@ -169,6 +179,9 @@ class ApproveDoctorView(APIView):
         if profile is not None and profile.specialty_id is None:
             profile.specialty = specialty
             profile.save(update_fields=['specialty', 'updated_at'])
+        from core.emails import notify_specialty_decision
+
+        notify_specialty_decision(doctor.email, _display_name(doctor), specialty.name, approved=True)
 
 
 class RejectDoctorView(APIView):
@@ -200,6 +213,9 @@ class BanUserView(APIView):
         target.status = User.Status.BANNED
         target.is_active = False
         target.save(update_fields=['status', 'is_active', 'updated_at'])
+        from core.emails import notify_account_banned
+
+        notify_account_banned(target.email, _display_name(target))
         return Response(UserSerializer(target).data)
 
 
@@ -213,4 +229,7 @@ class UnbanUserView(APIView):
         target.status = User.Status.APPROVED
         target.is_active = True
         target.save(update_fields=['status', 'is_active', 'updated_at'])
+        from core.emails import notify_account_unbanned
+
+        notify_account_unbanned(target.email, _display_name(target))
         return Response(UserSerializer(target).data)

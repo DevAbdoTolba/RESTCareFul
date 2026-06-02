@@ -43,10 +43,8 @@ def test_patient_books_open_slot(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor)
     api.force_authenticate(patient)
-    r = api.post(BOOK, {'availability': s.id}, format='json')
+    r = api.post(BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json')
     assert r.status_code == 201
-    s.refresh_from_db()
-    assert s.is_available is False
     assert Appointment.objects.filter(patient=patient, doctor=doctor).count() == 1
 
 
@@ -55,7 +53,7 @@ def test_cannot_book_past_slot(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor, days=-3)  # safely in the past regardless of the UTC offset
     api.force_authenticate(patient)
-    r = api.post(BOOK, {'availability': s.id}, format='json')
+    r = api.post(BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json')
     assert r.status_code == 400
 
 
@@ -64,8 +62,15 @@ def test_taken_slot_cannot_be_rebooked(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor)
     api.force_authenticate(patient)
-    assert api.post(BOOK, {'availability': s.id}, format='json').status_code == 201
-    second = api.post(BOOK, {'availability': s.id}, format='json')
+    assert (
+        api.post(
+            BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json'
+        ).status_code
+        == 201
+    )
+    second = api.post(
+        BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json'
+    )
     assert second.status_code in (400, 409)
 
 
@@ -90,9 +95,10 @@ def test_patient_cancels_pending_and_frees_slot(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor)
     api.force_authenticate(patient)
-    booked = api.post(BOOK, {'availability': s.id}, format='json')
+    booked = api.post(
+        BOOK, {'doctor': doctor.pk, 'date': str(s.date), 'time': '10:00'}, format='json'
+    )
     appt_id = booked.data['id']
     r = api.post(f'/api/v1/appointments/{appt_id}/cancel/')
     assert r.status_code == 200
-    s.refresh_from_db()
-    assert s.is_available is True
+    assert Appointment.objects.get(id=appt_id).status == Appointment.Status.CANCELLED

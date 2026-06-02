@@ -59,14 +59,40 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
 
 class BookAppointmentSerializer(serializers.Serializer):
-    """Patient books by picking one of a doctor's open availability windows."""
+    """Patient books a specific 30-min time inside one of the doctor's open windows."""
 
-    availability = serializers.PrimaryKeyRelatedField(queryset=DoctorAvailability.objects.all())
+    doctor = serializers.IntegerField()
+    date = serializers.DateField()
+    time = serializers.TimeField()
     notes = serializers.CharField(required=False, allow_blank=True, default='')
 
-    def validate_availability(self, slot):
-        if not slot.is_available:
-            raise serializers.ValidationError('That slot is already taken.')
-        if slot.date < timezone.now().date():
+    def validate(self, attrs):
+        from accounts.models import User
+        from doctors.models import DoctorProfile
+
+        prof = DoctorProfile.objects.filter(
+            pk=attrs['doctor'],
+            user__role=User.Role.DOCTOR,
+            user__status=User.Status.APPROVED,
+        ).first()
+        if prof is None:
+            raise serializers.ValidationError({'doctor': 'No such approved doctor.'})
+
+        now = timezone.now()
+        if attrs['date'] < now.date() or (
+            attrs['date'] == now.date() and attrs['time'] <= now.time()
+        ):
             raise serializers.ValidationError('Cannot book a slot in the past.')
-        return slot
+
+        window = DoctorAvailability.objects.filter(
+            doctor=prof,
+            date=attrs['date'],
+            is_available=True,
+            start_time__lte=attrs['time'],
+            end_time__gt=attrs['time'],
+        ).first()
+        if window is None:
+            raise serializers.ValidationError('That time is not open for booking.')
+
+        attrs['doctor_profile'] = prof
+        return attrs

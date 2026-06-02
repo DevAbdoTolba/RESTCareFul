@@ -1,4 +1,4 @@
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
@@ -28,30 +28,37 @@ class BookAppointmentView(APIView):
     def post(self, request):
         ser = BookAppointmentSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        slot = ser.validated_data['availability']
+        data = ser.validated_data
+        prof = data['doctor_profile']
 
-        try:
-            with transaction.atomic():
-                locked = DoctorAvailability.objects.select_for_update().get(pk=slot.pk)
-                if not locked.is_available:
+        with transaction.atomic():
+            existing = (
+                Appointment.objects.select_for_update()
+                .filter(doctor=prof, date=data['date'], time=data['time'])
+                .first()
+            )
+            if existing is not None:
+                if existing.status != Appointment.Status.CANCELLED:
                     return Response(
-                        {'detail': 'That slot was just taken.'},
+                        {'detail': 'That slot is already booked.'},
                         status=status.HTTP_409_CONFLICT,
                     )
+                # Re-open a previously-cancelled slot for the new patient.
+                existing.patient = request.user
+                existing.status = Appointment.Status.PENDING
+                existing.notes = data['notes']
+                existing.paid = False
+                existing.amount_paid = 0
+                existing.save()
+                appointment = existing
+            else:
                 appointment = Appointment.objects.create(
                     patient=request.user,
-                    doctor=locked.doctor,
-                    date=locked.date,
-                    time=locked.start_time,
-                    notes=ser.validated_data['notes'],
+                    doctor=prof,
+                    date=data['date'],
+                    time=data['time'],
+                    notes=data['notes'],
                 )
-                locked.is_available = False
-                locked.save(update_fields=['is_available'])
-        except IntegrityError:
-            return Response(
-                {'detail': 'This doctor is already booked at that time.'},
-                status=status.HTTP_409_CONFLICT,
-            )
 
         return Response(AppointmentSerializer(appointment).data, status=status.HTTP_201_CREATED)
 

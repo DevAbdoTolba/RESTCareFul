@@ -146,14 +146,12 @@ class DoctorOpenSlotsView(generics.ListAPIView):
 
 
 class DoctorTimeSlotsView(APIView):
-    """GET /api/v1/doctors/<id>/slots/ - real bookable 30-minute time slots.
+    """GET /api/v1/doctors/<id>/slots/ - real bookable on-the-hour time slots.
 
-    Expands each open future availability window into 30-min slots and drops any
-    that are in the past or already booked, so a patient sees real times
-    (09:00, 09:30, 10:00, ...) instead of just the window start.
+    Expands each open future availability window into whole-hour slots (09:00,
+    10:00, 11:00, ...) and drops any that are in the past or already booked. We
+    only serve on-the-hour appointments — no half-hour slots.
     """
-
-    SLOT_MINUTES = 30
 
     def get(self, request, pk):
         from datetime import datetime, timedelta
@@ -173,6 +171,9 @@ class DoctorTimeSlotsView(APIView):
         slots = []
         for window in windows:
             cursor = datetime.combine(window.date, window.start_time)
+            # Align to the first whole hour at or after the window start.
+            if cursor.minute or cursor.second:
+                cursor = cursor.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
             end = datetime.combine(window.date, window.end_time)
             while cursor < end:
                 slot_time = cursor.time()
@@ -181,7 +182,7 @@ class DoctorTimeSlotsView(APIView):
                     slots.append(
                         {'date': window.date.isoformat(), 'time': slot_time.strftime('%H:%M')}
                     )
-                cursor += timedelta(minutes=self.SLOT_MINUTES)
+                cursor += timedelta(hours=1)
         slots.sort(key=lambda s: (s['date'], s['time']))
         return Response(slots)
 

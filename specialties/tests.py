@@ -60,3 +60,30 @@ def test_admin_approve_creates_real_specialty(api, admin, doctor):
     assert Specialty.objects.filter(name='Dermatology').exists()
     s.refresh_from_db()
     assert s.status == SpecialtySuggestion.Status.APPROVED
+
+
+@pytest.mark.django_db
+def test_approving_doctor_account_also_approves_their_proposed_specialty(api, admin):
+    """A pending doctor who proposed a new specialty at signup: approving the
+    account approves the suggestion and links the new specialty to the profile."""
+    from doctors.models import DoctorProfile
+
+    pending = User.objects.create_user(
+        email='newdoc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.PENDING,
+    )
+    profile = DoctorProfile.objects.create(user=pending, specialty=None)
+    suggestion = SpecialtySuggestion.objects.create(name='Oncology', proposed_by=pending)
+
+    api.force_authenticate(admin)
+    r = api.post(f'/api/v1/auth/admin/doctors/{pending.pk}/approve/')
+    assert r.status_code == 200
+
+    suggestion.refresh_from_db()
+    profile.refresh_from_db()
+    assert suggestion.status == SpecialtySuggestion.Status.APPROVED
+    assert Specialty.objects.filter(name='Oncology').exists()
+    assert profile.specialty is not None
+    assert profile.specialty.name == 'Oncology'

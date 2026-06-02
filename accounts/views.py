@@ -140,7 +140,35 @@ class ApproveDoctorView(APIView):
         doctor = get_object_or_404(User, pk=pk, role=User.Role.DOCTOR)
         doctor.status = User.Status.APPROVED
         doctor.save(update_fields=['status', 'updated_at'])
+        self._approve_proposed_specialty(doctor)
         return Response(UserSerializer(doctor).data)
+
+    def _approve_proposed_specialty(self, doctor):
+        """A doctor who proposed a new specialty at signup has no specialty yet.
+
+        Approving the account also approves that pending suggestion: it becomes a
+        real Specialty and gets linked onto the doctor's profile, so no approved
+        doctor is ever left without a specialty.
+        """
+        from doctors.models import DoctorProfile
+        from specialties.models import Specialty, SpecialtySuggestion
+
+        suggestion = (
+            SpecialtySuggestion.objects.filter(
+                proposed_by=doctor, status=SpecialtySuggestion.Status.PENDING
+            )
+            .order_by('-created_at')
+            .first()
+        )
+        if suggestion is None:
+            return
+        suggestion.status = SpecialtySuggestion.Status.APPROVED
+        suggestion.save(update_fields=['status'])
+        specialty, _ = Specialty.objects.get_or_create(name=suggestion.name)
+        profile = DoctorProfile.objects.filter(pk=doctor.pk).first()
+        if profile is not None and profile.specialty_id is None:
+            profile.specialty = specialty
+            profile.save(update_fields=['specialty', 'updated_at'])
 
 
 class RejectDoctorView(APIView):

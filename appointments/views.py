@@ -177,6 +177,13 @@ class ManageAppointmentView(APIView):
                 {'detail': f'status must be one of {sorted(self.ALLOWED)}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # An outdated booking is frozen — nobody can manage it at all (it already
+        # auto-expired and was refunded).
+        if appt.status == Appointment.Status.OUTDATED:
+            return Response(
+                {'detail': 'This appointment is outdated and can no longer be managed.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # An unpaid booking is off-limits to the doctor — they can ONLY cancel it.
         # No confirming, completing, or note edits until the patient has paid.
         if not appt.paid and new_status != Appointment.Status.CANCELLED:

@@ -213,6 +213,25 @@ def test_display_status_is_unpaid_until_paid_then_pending(api):
 
 
 @pytest.mark.django_db
+def test_doctor_cannot_manage_an_outdated_appointment(api):
+    """An outdated booking is frozen — not even cancel is allowed."""
+    patient, doctor = make_patient(), make_doctor()
+    appt = Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today() - datetime.timedelta(days=3),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.OUTDATED,
+    )
+    api.force_authenticate(doctor.user)
+    for target in ('confirmed', 'completed', 'cancelled'):
+        r = api.post(
+            f'/api/v1/appointments/{appt.id}/manage/', {'status': target}, format='json'
+        )
+        assert r.status_code == 400
+
+
+@pytest.mark.django_db
 def test_doctor_cannot_confirm_an_unpaid_appointment(api):
     patient, doctor = make_patient(), make_doctor()
     appt = Appointment.objects.create(

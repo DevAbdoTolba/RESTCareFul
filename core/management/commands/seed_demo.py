@@ -20,6 +20,7 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from accounts.models import User
@@ -170,7 +171,11 @@ class Command(BaseCommand):
     def _seed_specialties(self):
         out = {}
         for name, desc in SPECIALTIES:
-            out[name] = Specialty.objects.create(name=name, description=desc)
+            # get_or_create: a demo specialty may have been kept on flush because
+            # a real doctor still references it (see _flush).
+            out[name], _ = Specialty.objects.get_or_create(
+                name=name, defaults={'description': desc}
+            )
         return out
 
     def _seed_admin(self):
@@ -339,15 +344,25 @@ class Command(BaseCommand):
     # --- flush --------------------------------------------------------------
 
     def _flush(self):
-        """Delete demo rows in FK-safe order (everything tied to @usecare.test)."""
+        """Delete demo rows in FK-safe order (everything tied to @usecare.test).
+
+        Appointments/payments/ratings are matched by demo patient OR demo
+        doctor: a real (non-demo) patient may have booked a demo doctor, and
+        those rows PROTECT the DoctorProfile, so they must go first too.
+        """
         demo_users = User.objects.filter(email__endswith=DEMO_DOMAIN)
-        Payment.objects.filter(patient__in=demo_users).delete()
-        Rating.objects.filter(patient__in=demo_users).delete()
-        Appointment.objects.filter(patient__in=demo_users).delete()
+        tied_to_demo = Q(patient__in=demo_users) | Q(doctor__user__in=demo_users)
+        Payment.objects.filter(tied_to_demo).delete()
+        Rating.objects.filter(tied_to_demo).delete()
+        Appointment.objects.filter(tied_to_demo).delete()
         DocUpdateRequest.objects.filter(doctor__user__in=demo_users).delete()
         DoctorAvailability.objects.filter(doctor__user__in=demo_users).delete()
         SpecialtySuggestion.objects.filter(proposed_by__in=demo_users).delete()
         DoctorProfile.objects.filter(user__in=demo_users).delete()
         demo_users.delete()
-        Specialty.objects.filter(name__in=[n for n, _ in SPECIALTIES]).delete()
+        # Only drop demo specialties nothing still points at — a real doctor may
+        # have picked one (it PROTECTs the row); leave those in place.
+        for spec in Specialty.objects.filter(name__in=[n for n, _ in SPECIALTIES]):
+            if not spec.doctors.exists():
+                spec.delete()
         self.stdout.write(self.style.WARNING('Flushed existing demo data.'))

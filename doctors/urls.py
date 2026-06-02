@@ -15,6 +15,7 @@ from .views import (
     ApproveUpdateRequestView,
     BestDoctorsView,
     DoctorOpenSlotsView,
+    DoctorTimeSlotsView,
     MyAvailabilityDeleteView,
     MyAvailabilityView,
     MyDoctorProfileView,
@@ -49,4 +50,5 @@ urlpatterns = [
     ),
     path('<int:pk>/', ApprovedDoctorDetailView.as_view(), name='detail'),
     path('<int:pk>/availability/', DoctorOpenSlotsView.as_view(), name='open-slots'),
+    path('<int:pk>/slots/', DoctorTimeSlotsView.as_view(), name='time-slots'),
 ]

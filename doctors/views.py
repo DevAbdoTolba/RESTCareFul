@@ -145,6 +145,47 @@ class DoctorOpenSlotsView(generics.ListAPIView):
         )
 
 
+class DoctorTimeSlotsView(APIView):
+    """GET /api/v1/doctors/<id>/slots/ - real bookable 30-minute time slots.
+
+    Expands each open future availability window into 30-min slots and drops any
+    that are in the past or already booked, so a patient sees real times
+    (09:00, 09:30, 10:00, ...) instead of just the window start.
+    """
+
+    SLOT_MINUTES = 30
+
+    def get(self, request, pk):
+        from datetime import datetime, timedelta
+
+        from appointments.models import Appointment
+
+        now = timezone.now()
+        today = now.date()
+        windows = DoctorAvailability.objects.filter(
+            doctor_id=pk, is_available=True, date__gte=today
+        )
+        taken = set(
+            Appointment.objects.filter(doctor_id=pk, date__gte=today)
+            .exclude(status=Appointment.Status.CANCELLED)
+            .values_list('date', 'time')
+        )
+        slots = []
+        for window in windows:
+            cursor = datetime.combine(window.date, window.start_time)
+            end = datetime.combine(window.date, window.end_time)
+            while cursor < end:
+                slot_time = cursor.time()
+                in_past = window.date < today or (window.date == today and slot_time <= now.time())
+                if not in_past and (window.date, slot_time) not in taken:
+                    slots.append(
+                        {'date': window.date.isoformat(), 'time': slot_time.strftime('%H:%M')}
+                    )
+                cursor += timedelta(minutes=self.SLOT_MINUTES)
+        slots.sort(key=lambda s: (s['date'], s['time']))
+        return Response(slots)
+
+
 class MyUpdateRequestView(generics.ListCreateAPIView):
     """GET/POST /api/v1/doctors/me/update-requests/ - file resume/license changes."""
 

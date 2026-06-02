@@ -60,6 +60,7 @@ class User(AbstractUser):
         PENDING = 'pending', 'Pending'
         APPROVED = 'approved', 'Approved'
         REJECTED = 'rejected', 'Rejected'
+        BANNED = 'banned', 'Banned'  # admin-revoked; also flips is_active off
 
     class Gender(models.TextChoices):
         FEMALE = 'female', 'Female'

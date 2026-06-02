@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -90,7 +90,12 @@ class AdminUserDetailView(APIView):
         user = get_object_or_404(User, pk=pk)
         data = UserSerializer(user).data
         if user.role == User.Role.DOCTOR:
+            from django.db.models import Avg, Count, Sum
+
+            from appointments.models import Appointment
             from doctors.models import DoctorProfile
+            from payments.models import Payment
+            from ratings.models import Rating
 
             prof = DoctorProfile.objects.select_related('specialty').filter(pk=user.pk).first()
             if prof:
@@ -103,6 +108,26 @@ class AdminUserDetailView(APIView):
                         'license_url': prof.license_url,
                     }
                 )
+            # Stats the admin needs to judge a doctor at a glance.
+            appts = Appointment.objects.filter(doctor_id=user.pk)
+            rating = Rating.objects.filter(doctor_id=user.pk).aggregate(
+                avg=Avg('stars'), count=Count('appointment')
+            )
+            earned = (
+                Payment.objects.filter(doctor_id=user.pk, status=Payment.Status.PAID).aggregate(
+                    s=Sum('amount')
+                )['s']
+                or 0
+            )
+            data['rating'] = {
+                'average': round(rating['avg'], 2) if rating['avg'] is not None else None,
+                'count': rating['count'],
+            }
+            data['stats'] = {
+                'appointments': appts.count(),
+                'completed': appts.filter(status=Appointment.Status.COMPLETED).count(),
+                'total_earned': earned,
+            }
         return Response(data)
 
 
@@ -128,3 +153,36 @@ class RejectDoctorView(APIView):
         doctor.status = User.Status.REJECTED
         doctor.save(update_fields=['status', 'updated_at'])
         return Response(UserSerializer(doctor).data)
+
+
+class BanUserView(APIView):
+    """POST /api/v1/auth/admin/users/<id>/ban/ — revoke access for any non-admin.
+
+    Flips is_active off too, so a banned account can't obtain a JWT at all.
+    """
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        if target.role == User.Role.ADMIN:
+            return Response(
+                {'detail': 'Admins cannot be banned.'}, status=status.HTTP_400_BAD_REQUEST
+            )
+        target.status = User.Status.BANNED
+        target.is_active = False
+        target.save(update_fields=['status', 'is_active', 'updated_at'])
+        return Response(UserSerializer(target).data)
+
+
+class UnbanUserView(APIView):
+    """POST /api/v1/auth/admin/users/<id>/unban/ — restore a banned account."""
+
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        target.status = User.Status.APPROVED
+        target.is_active = True
+        target.save(update_fields=['status', 'is_active', 'updated_at'])
+        return Response(UserSerializer(target).data)

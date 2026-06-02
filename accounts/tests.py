@@ -165,3 +165,56 @@ def test_profile_update_cannot_change_role(api):
     user.refresh_from_db()
     assert user.first_name == 'New'
     assert user.role == User.Role.PATIENT  # role is not an editable profile field
+
+
+@pytest.mark.django_db
+def test_admin_can_ban_user_and_login_is_blocked(api):
+    admin = User.objects.create_superuser(email='admin@test.com', password='admin1234')
+    patient = User.objects.create_user(
+        email='p@test.com',
+        password='patient123',
+        role=User.Role.PATIENT,
+        status=User.Status.APPROVED,
+    )
+    api.force_authenticate(admin)
+    r = api.post(f'/api/v1/auth/admin/users/{patient.id}/ban/')
+    assert r.status_code == 200
+    patient.refresh_from_db()
+    assert patient.status == User.Status.BANNED
+    assert patient.is_active is False
+    # A banned account can't obtain a token.
+    assert (
+        APIClient()
+        .post(LOGIN, {'email': 'p@test.com', 'password': 'patient123'}, format='json')
+        .status_code
+        == 401
+    )
+
+
+@pytest.mark.django_db
+def test_admins_cannot_be_banned(api):
+    admin = User.objects.create_superuser(email='admin@test.com', password='admin1234')
+    other = User.objects.create_user(
+        email='a2@test.com', password='admin1234', role=User.Role.ADMIN, status=User.Status.APPROVED
+    )
+    api.force_authenticate(admin)
+    assert api.post(f'/api/v1/auth/admin/users/{other.id}/ban/').status_code == 400
+
+
+@pytest.mark.django_db
+def test_admin_user_detail_carries_doctor_rating_and_stats(api):
+    from doctors.models import DoctorProfile
+
+    admin = User.objects.create_superuser(email='admin@test.com', password='admin1234')
+    doc_user = User.objects.create_user(
+        email='doc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.APPROVED,
+    )
+    DoctorProfile.objects.create(user=doc_user)
+    api.force_authenticate(admin)
+    r = api.get(f'/api/v1/auth/admin/users/{doc_user.id}/')
+    assert r.status_code == 200
+    assert 'rating' in r.data and 'stats' in r.data
+    assert r.data['stats']['appointments'] == 0

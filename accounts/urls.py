@@ -12,10 +12,12 @@ from .views import (
     AdminUserDetailView,
     AdminUserListView,
     ApproveDoctorView,
+    BanUserView,
     ChangePasswordView,
     MeView,
     RegisterView,
     RejectDoctorView,
+    UnbanUserView,
     UpdateProfileView,
 )
 
@@ -30,6 +32,8 @@ urlpatterns = [
     path('me/password/', ChangePasswordView.as_view(), name='change-password'),
     path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
     path('admin/users/<int:pk>/', AdminUserDetailView.as_view(), name='admin-user-detail'),
+    path('admin/users/<int:pk>/ban/', BanUserView.as_view(), name='ban-user'),
+    path('admin/users/<int:pk>/unban/', UnbanUserView.as_view(), name='unban-user'),
     path('admin/doctors/<int:pk>/approve/', ApproveDoctorView.as_view(), name='approve-doctor'),
     path('admin/doctors/<int:pk>/reject/', RejectDoctorView.as_view(), name='reject-doctor'),
 ]

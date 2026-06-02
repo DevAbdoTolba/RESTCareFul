@@ -96,6 +96,28 @@ def test_me_returns_the_current_user(api):
 
 
 @pytest.mark.django_db
+def test_me_carries_the_doctors_own_documents(api):
+    """A doctor's /me payload includes their resume + license so they can see
+    their own papers on the profile page."""
+    from doctors.models import DoctorProfile
+
+    doc = User.objects.create_user(
+        email='doc@test.com',
+        password='doctor123',
+        role=User.Role.DOCTOR,
+        status=User.Status.APPROVED,
+    )
+    DoctorProfile.objects.create(
+        user=doc, resume_url='https://example.com/r.png', license_url='https://example.com/l.png'
+    )
+    api.force_authenticate(doc)
+    r = api.get(ME)
+    assert r.status_code == 200
+    assert r.data['resume_url'] == 'https://example.com/r.png'
+    assert r.data['license_url'] == 'https://example.com/l.png'
+
+
+@pytest.mark.django_db
 def test_admin_approves_a_pending_doctor(api):
     admin = User.objects.create_superuser(email='admin@test.com', password='admin1234')
     doctor = User.objects.create_user(

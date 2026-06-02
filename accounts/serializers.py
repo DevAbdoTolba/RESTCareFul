@@ -50,7 +50,17 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """The "who am I" payload — safe to ship to the frontend."""
+    """The "who am I" payload — safe to ship to the frontend.
+
+    For doctors we flatten the DoctorProfile fields onto the payload so the
+    profile page can show their own specialty, rate and (importantly) their
+    resume + license without a second request.
+    """
+
+    specialty_id = serializers.SerializerMethodField()
+    hourly_rate = serializers.SerializerMethodField()
+    resume_url = serializers.SerializerMethodField()
+    license_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -67,8 +77,48 @@ class UserSerializer(serializers.ModelSerializer):
             'description',
             'created_at',
             'updated_at',
+            'specialty_id',
+            'hourly_rate',
+            'resume_url',
+            'license_url',
         )
-        read_only_fields = fields  # /me is read-only; profile updates have their own endpoint
+        # /me is read-only; profile updates have their own endpoint. (Only the
+        # model fields go here — the method fields above are read-only already.)
+        read_only_fields = (
+            'id',
+            'email',
+            'role',
+            'status',
+            'first_name',
+            'last_name',
+            'phone_number',
+            'gender',
+            'date_of_birth',
+            'description',
+            'created_at',
+            'updated_at',
+        )
+
+    def _profile(self, obj):
+        if obj.role != User.Role.DOCTOR:
+            return None
+        return getattr(obj, 'doctor_profile', None)
+
+    def get_specialty_id(self, obj):
+        prof = self._profile(obj)
+        return prof.specialty_id if prof else None
+
+    def get_hourly_rate(self, obj):
+        prof = self._profile(obj)
+        return str(prof.hourly_rate) if prof and prof.hourly_rate is not None else None
+
+    def get_resume_url(self, obj):
+        prof = self._profile(obj)
+        return prof.resume_url if prof else None
+
+    def get_license_url(self, obj):
+        prof = self._profile(obj)
+        return prof.license_url if prof else None
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):

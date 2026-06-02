@@ -1,9 +1,25 @@
 """Serializers for the public auth endpoints."""
 
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from rest_framework import serializers
 
 User = get_user_model()
+
+# Oldest plausible birth year — guards against typos like year 0900 or 3000.
+MAX_AGE_YEARS = 120
+
+
+def validate_dob(value):
+    """A date of birth must be a real past date — never in the future."""
+    if value is None:
+        return value
+    today = timezone.now().date()
+    if value > today:
+        raise serializers.ValidationError('Date of birth cannot be in the future.')
+    if value.year < today.year - MAX_AGE_YEARS:
+        raise serializers.ValidationError('Please enter a valid date of birth.')
+    return value
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -37,6 +53,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         if value == User.Role.ADMIN:
             raise serializers.ValidationError('Admins cannot self-register.')
         return value
+
+    def validate_date_of_birth(self, value):
+        return validate_dob(value)
 
     def create(self, validated_data):
         # Patients are trusted instantly; doctors wait for an admin to verify
@@ -138,6 +157,9 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             'date_of_birth',
             'description',
         )
+
+    def validate_date_of_birth(self, value):
+        return validate_dob(value)
 
 
 class ChangePasswordSerializer(serializers.Serializer):

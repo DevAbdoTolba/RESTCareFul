@@ -240,7 +240,7 @@ class Command(BaseCommand):
         """Past, completed visits — each with a rating + a paid payment."""
         rows = [
             ('ahmed', 'yara', 20, time(9, 0), 5, 'Very thorough, explained everything clearly.'),
-            ('ahmed', 'ali', 14, time(10, 30), 4, 'Good visit, a bit of a wait.'),
+            ('ahmed', 'ali', 14, time(10, 0), 4, 'Good visit, a bit of a wait.'),
             ('mona', 'nour', 12, time(11, 0), 5, 'Cleared my skin issue fast.'),
             ('layla', 'hana', 9, time(16, 0), 4, ''),
         ]

@@ -1,5 +1,7 @@
 """Serializers for the public auth endpoints."""
 
+import re
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
@@ -8,6 +10,9 @@ User = get_user_model()
 
 # Oldest plausible birth year — guards against typos like year 0900 or 3000.
 MAX_AGE_YEARS = 120
+
+# Digits, spaces, +, -, parens and a leading +; the digit-count is checked too.
+PHONE_RE = re.compile(r'^\+?[0-9\s\-()]+$')
 
 
 def validate_dob(value):
@@ -19,6 +24,16 @@ def validate_dob(value):
         raise serializers.ValidationError('Date of birth cannot be in the future.')
     if value.year < today.year - MAX_AGE_YEARS:
         raise serializers.ValidationError('Please enter a valid date of birth.')
+    return value
+
+
+def validate_phone(value):
+    """A phone number must be 7–15 digits, optionally with + / spaces / dashes."""
+    if not value:
+        return value
+    digits = sum(ch.isdigit() for ch in value)
+    if not PHONE_RE.match(value) or not (7 <= digits <= 15):
+        raise serializers.ValidationError('Enter a valid phone number (7–15 digits).')
     return value
 
 
@@ -56,6 +71,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_date_of_birth(self, value):
         return validate_dob(value)
+
+    def validate_phone_number(self, value):
+        return validate_phone(value)
 
     def create(self, validated_data):
         # Patients are trusted instantly; doctors wait for an admin to verify
@@ -160,6 +178,9 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 
     def validate_date_of_birth(self, value):
         return validate_dob(value)
+
+    def validate_phone_number(self, value):
+        return validate_phone(value)
 
 
 class ChangePasswordSerializer(serializers.Serializer):

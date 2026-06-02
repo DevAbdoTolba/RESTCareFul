@@ -55,6 +55,34 @@ def test_register_rejects_a_future_date_of_birth(api):
 
 
 @pytest.mark.django_db
+def test_register_rejects_a_bad_phone_number(api):
+    r = api.post(
+        REGISTER,
+        {
+            'email': 'p@test.com', 'password': 'patient123', 'role': 'patient',
+            'first_name': 'Pat', 'phone_number': 'not-a-phone',
+        },
+        format='json',
+    )
+    assert r.status_code == 400
+    assert 'phone_number' in r.data
+    assert not User.objects.filter(email='p@test.com').exists()
+
+
+@pytest.mark.django_db
+def test_register_accepts_a_valid_phone_number(api):
+    r = api.post(
+        REGISTER,
+        {
+            'email': 'p@test.com', 'password': 'patient123', 'role': 'patient',
+            'first_name': 'Pat', 'phone_number': '+20 100 123 4567',
+        },
+        format='json',
+    )
+    assert r.status_code == 201
+
+
+@pytest.mark.django_db
 def test_register_patient_is_auto_approved(api):
     r = api.post(
         REGISTER,

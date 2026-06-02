@@ -128,7 +128,7 @@ erDiagram
 | Appointments | Payment | Paid for | each appointment → at most one payment *(post-discussion)* |
 | User | Payment | Pays | one patient → many payments; platform keeps a 12% cut *(post-discussion)* |
 | Doctor | SpecialtySuggestion | Proposes | a doctor proposes specialties the admin approves into Specialty *(post-discussion)* |
-| Doctor | DocUpdateRequest | Requests | a doctor files résumé/license changes the admin approves back onto Doctor *(post-discussion)* |
+| Doctor | DocUpdateRequest | Requests | a doctor files resume/license changes the admin approves back onto Doctor *(post-discussion)* |
 
 ## Notes on the additions
 
@@ -150,5 +150,5 @@ erDiagram
 - **SpecialtySuggestion** — a doctor whose specialty isn't listed proposes one;
   approving it creates a real `Specialty`.
 - **DocUpdateRequest** — already-approved doctors can't silently swap their
-  résumé/license. They file a `DocUpdateRequest`; admin approval patches the
+  resume/license. They file a `DocUpdateRequest`; admin approval patches the
   matching `D_resume_url` / `D_license_url` back onto `Doctor`.

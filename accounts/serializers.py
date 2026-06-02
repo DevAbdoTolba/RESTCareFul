@@ -40,7 +40,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Patients are trusted instantly; doctors wait for an admin to verify
-        # their license/résumé before they can be booked.
+        # their license/resume before they can be booked.
         role = validated_data.get('role', User.Role.PATIENT)
         validated_data['status'] = (
             User.Status.PENDING if role == User.Role.DOCTOR else User.Status.APPROVED

@@ -107,6 +107,19 @@ PATIENTS = [
     ('tarek', 'Tarek', 'Rashid', 'male', date(1975, 6, 17)),
 ]
 
+# Real document images (they actually render in the browser, unlike the old
+# placeholder .pdf links). Cycled across the doctors.
+RESUME_IMAGES = [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwCx_R8vbYzpGGU1D5Bxl_g5WauSrp3XjmoQ&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAuolFUEaw4XH46pjc0EVp8jQh03jOB-lnmw&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQepvILcg7YnMI4wJb4_ec-ULE5gsKUJoFleA&s',
+]
+LICENSE_IMAGES = [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSf9uu1xXXrErHQ-8V8xm_9S7UxjQPW3lajWA&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSW2e507Jg5SZLxdoen9u-e5TcxxXEWpDec0w&s',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJdqfdR05A-7geVRnEHbrnkA_ClwjxCbN9vg&s',
+]
+
 
 class Command(BaseCommand):
     help = 'Seed the database with relevant demo data (idempotent).'
@@ -170,7 +183,7 @@ class Command(BaseCommand):
 
     def _seed_doctors(self, specialties):
         doctors = {}
-        for local, first, last, spec, rate, status, gender, dob, about in DOCTORS:
+        for i, (local, first, last, spec, rate, status, gender, dob, about) in enumerate(DOCTORS):
             user = User.objects.create_user(
                 email=f'{local}{DEMO_DOMAIN}',
                 password='doctor123',
@@ -187,8 +200,8 @@ class Command(BaseCommand):
                 user=user,
                 specialty=specialties[spec],
                 hourly_rate=Decimal(rate),
-                resume_url=f'https://files.usecare.test/resumes/{local}.pdf',
-                license_url=f'https://files.usecare.test/licenses/{local}.pdf',
+                resume_url=RESUME_IMAGES[i % len(RESUME_IMAGES)],
+                license_url=LICENSE_IMAGES[i % len(LICENSE_IMAGES)],
             )
             doctors[local] = profile
         return doctors
@@ -284,7 +297,7 @@ class Command(BaseCommand):
             ).update(is_available=False)
 
     def _seed_proposals(self, doctors):
-        """A pending specialty suggestion + a pending résumé/license update request."""
+        """A pending specialty suggestion + a pending resume/license update request."""
         SpecialtySuggestion.objects.create(
             name='Orthopedics',
             proposed_by=doctors['samir'].user,
@@ -294,7 +307,7 @@ class Command(BaseCommand):
         DocUpdateRequest.objects.create(
             doctor=mona,
             doctor_name=f'{mona.user.first_name} {mona.user.last_name}',
-            license_url='https://files.usecare.test/licenses/mona-renewed.pdf',
+            license_url=LICENSE_IMAGES[2],
             status=DocUpdateRequest.Status.PENDING,
         )
 

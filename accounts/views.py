@@ -80,7 +80,7 @@ class AdminUserListView(generics.ListAPIView):
 class AdminUserDetailView(APIView):
     """GET /api/v1/auth/admin/users/<id>/ — full user incl. doctor docs.
 
-    The approve dialog needs a pending doctor's résumé/license (which live on the
+    The approve dialog needs a pending doctor's resume/license (which live on the
     DoctorProfile, not the User), so they're merged in here.
     """
 

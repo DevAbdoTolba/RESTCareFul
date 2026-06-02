@@ -87,6 +87,28 @@ def test_open_slots_hide_past_windows(api):
 
 
 @pytest.mark.django_db
+def test_admin_request_list_carries_current_and_proposed_docs(api):
+    """The admin sees the doctor's CURRENT resume+license alongside whatever
+    new file was requested — even the document that isn't changing."""
+    prof = make_doctor()
+    prof.resume_url = 'https://old-resume'
+    prof.license_url = 'https://old-license'
+    prof.save()
+    # The doctor only changes the license -> resume_url on the request is blank.
+    DocUpdateRequest.objects.create(doctor=prof, doctor_name='Dr Who', license_url='https://new-license')
+    admin = User.objects.create_superuser(email='admin@test.com', password='admin1234')
+    api.force_authenticate(admin)
+    r = api.get('/api/v1/doctors/update-requests/')
+    assert r.status_code == 200
+    rows = r.data['results'] if isinstance(r.data, dict) and 'results' in r.data else r.data
+    row = rows[0]
+    assert row['current_resume_url'] == 'https://old-resume'
+    assert row['current_license_url'] == 'https://old-license'
+    assert row['license_url'] == 'https://new-license'
+    assert not row['resume_url']  # resume isn't being changed
+
+
+@pytest.mark.django_db
 def test_update_request_approved_patches_profile(api):
     prof = make_doctor()
     req = DocUpdateRequest.objects.create(

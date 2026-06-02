@@ -83,10 +83,19 @@ class DoctorAvailabilitySerializer(serializers.ModelSerializer):
 
 
 class DocUpdateRequestSerializer(serializers.ModelSerializer):
-    """doctor files a resume/license change, admin approves it onto the profile."""
+    """doctor files a resume/license change, admin approves it onto the profile.
+
+    `resume_url`/`license_url` are the NEW (requested) docs — either may be blank
+    when the doctor only changes one. `current_*` carry the doctor's existing
+    docs so the admin can compare old vs new for BOTH documents side by side.
+    """
 
     # doctor pk == the user id, so the admin UI can map a request to a user row.
     doctor_id = serializers.IntegerField(read_only=True)
+    current_resume_url = serializers.CharField(source='doctor.resume_url', read_only=True, default='')
+    current_license_url = serializers.CharField(
+        source='doctor.license_url', read_only=True, default=''
+    )
 
     class Meta:
         model = DocUpdateRequest
@@ -96,6 +105,8 @@ class DocUpdateRequestSerializer(serializers.ModelSerializer):
             'doctor_name',
             'resume_url',
             'license_url',
+            'current_resume_url',
+            'current_license_url',
             'status',
             'created_at',
         )

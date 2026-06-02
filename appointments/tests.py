@@ -176,6 +176,52 @@ def test_confirmed_overdue_appointment_is_left_alone():
 
 
 @pytest.mark.django_db
+def test_display_status_is_unpaid_until_paid_then_pending(api):
+    patient, doctor = make_patient(), make_doctor()
+    appt = Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today() + datetime.timedelta(days=3),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.PENDING,
+        paid=False,
+    )
+    api.force_authenticate(patient)
+    row = api.get(MINE).data['results'][0]
+    assert row['status'] == 'pending'
+    assert row['display_status'] == 'unpaid'
+
+    appt.paid = True
+    appt.save(update_fields=['paid'])
+    row = api.get(MINE).data['results'][0]
+    assert row['display_status'] == 'pending'
+
+
+@pytest.mark.django_db
+def test_doctor_cannot_confirm_an_unpaid_appointment(api):
+    patient, doctor = make_patient(), make_doctor()
+    appt = Appointment.objects.create(
+        patient=patient,
+        doctor=doctor,
+        date=datetime.date.today() + datetime.timedelta(days=3),
+        time=datetime.time(10, 0),
+        status=Appointment.Status.PENDING,
+        paid=False,
+    )
+    api.force_authenticate(doctor.user)
+    manage = f'/api/v1/appointments/{appt.id}/manage/'
+
+    blocked = api.post(manage, {'status': 'confirmed'}, format='json')
+    assert blocked.status_code == 400
+
+    appt.paid = True
+    appt.save(update_fields=['paid'])
+    ok = api.post(manage, {'status': 'confirmed'}, format='json')
+    assert ok.status_code == 200
+    assert ok.data['status'] == 'confirmed'
+
+
+@pytest.mark.django_db
 def test_patient_cancels_pending_and_frees_slot(api):
     patient, doctor = make_patient(), make_doctor()
     s = slot(doctor)

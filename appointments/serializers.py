@@ -25,6 +25,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'date',
             'time',
             'status',
+            'display_status',
             'notes',
             'paid',
             'amount_paid',
@@ -39,6 +40,15 @@ class AppointmentSerializer(serializers.ModelSerializer):
         )
 
     my_rating = serializers.SerializerMethodField()
+    display_status = serializers.SerializerMethodField()
+
+    def get_display_status(self, obj):
+        # `paid` is a standalone flag, so a still-unpaid pending booking reads as
+        # 'unpaid' (waiting for payment) and only becomes 'pending' (waiting for
+        # the doctor to confirm) once it's paid. Every other status is itself.
+        if obj.status == Appointment.Status.PENDING and not obj.paid:
+            return 'unpaid'
+        return obj.status
 
     def _full_name(self, user):
         return f'{user.first_name} {user.last_name}'.strip() or user.email

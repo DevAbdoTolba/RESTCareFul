@@ -173,6 +173,16 @@ class ManageAppointmentView(APIView):
                 {'detail': f'status must be one of {sorted(self.ALLOWED)}.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # A doctor can only confirm/complete a booking the patient has paid for;
+        # an unpaid one can still be cancelled.
+        if (
+            new_status in (Appointment.Status.CONFIRMED, Appointment.Status.COMPLETED)
+            and not appt.paid
+        ):
+            return Response(
+                {'detail': "The patient hasn't paid yet — you can't confirm this appointment."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         appt.status = new_status
         if 'notes' in request.data:
             appt.notes = request.data['notes']

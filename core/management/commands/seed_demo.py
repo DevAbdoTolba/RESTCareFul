@@ -291,10 +291,8 @@ class Command(BaseCommand):
                 status=status,
                 notes='',
             )
-            # the matching window is no longer open
-            DoctorAvailability.objects.filter(
-                doctor=profile, date=slot_date, start_time=time(9, 0)
-            ).update(is_available=False)
+            # window stays open; the 09:00 slot is simply excluded by the slots
+            # endpoint (which drops already-booked times), the rest stay bookable.
 
     def _seed_proposals(self, doctors):
         """A pending specialty suggestion + a pending resume/license update request."""

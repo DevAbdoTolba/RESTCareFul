@@ -41,6 +41,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'corsheaders',
+    'anymail',  # HTTP-API email (Brevo) — used where SMTP is blocked (free PythonAnywhere).
     # SimpleJWT doesn't need to be in INSTALLED_APPS — its views are imported directly.
 ]
 
@@ -172,8 +173,17 @@ DEFAULT_FROM_EMAIL = env(
     'DEFAULT_FROM_EMAIL',
     default=(f'useCare <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'useCare <no-reply@usecare.test>'),
 )
-EMAIL_BACKEND = (
-    'django.core.mail.backends.smtp.EmailBackend'
-    if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD
-    else 'django.core.mail.backends.console.EmailBackend'
-)
+# Brevo (HTTP API) is preferred where outbound SMTP is blocked — e.g. free
+# PythonAnywhere, whose outbound whitelist is HTTPS-only and never lists SMTP
+# hosts. Set BREVO_API_KEY to send over HTTPS via Anymail instead. Priority:
+# Brevo HTTP API -> Gmail SMTP -> console (prints, never sends). Same send code
+# in core.emails either way — send_mail is backend-agnostic.
+BREVO_API_KEY = env('BREVO_API_KEY', default='')
+ANYMAIL = {'BREVO_API_KEY': BREVO_API_KEY}
+
+if BREVO_API_KEY:
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

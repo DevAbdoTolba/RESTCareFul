@@ -4,6 +4,7 @@ djangorestframework>=3.15,<4.0
 djangorestframework-simplejwt>=5.3,<6.0
 django-cors-headers>=4.3,<5.0
 django-environ>=0.11,<1.0
+django-anymail[brevo]>=10.0,<13.0   # HTTP-API email (Brevo) — sends over HTTPS where SMTP is blocked (free PythonAnywhere)
 psycopg[binary]>=3.1,<4.0          ; python_version < "3.14"   # Postgres driver — install but driver only used when DATABASE_URL=postgres://...
 
 # Dev / test (kept in the same file so CI installs everything in one step;

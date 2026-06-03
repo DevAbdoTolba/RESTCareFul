@@ -118,6 +118,19 @@ class AdminUserDetailView(APIView):
                         'license_url': prof.license_url,
                     }
                 )
+            # A doctor who proposed a brand-new specialty at signup has none
+            # assigned yet. Surface the pending suggestion so the admin can see
+            # (and, by approving the doctor, accept) the specialty they'll get.
+            from specialties.models import SpecialtySuggestion
+
+            pending = (
+                SpecialtySuggestion.objects.filter(
+                    proposed_by=user, status=SpecialtySuggestion.Status.PENDING
+                )
+                .order_by('-created_at')
+                .first()
+            )
+            data['proposed_specialty'] = pending.name if pending else None
             # Stats the admin needs to judge a doctor at a glance.
             appts = Appointment.objects.filter(doctor_id=user.pk)
             rating = Rating.objects.filter(doctor_id=user.pk).aggregate(
